@@ -1,4 +1,7 @@
 ## Project: Build a Traffic Sign Recognition Program
+
+This forked repository will include my personal work on this project. I expect to start working on it by mid-March 2017 so nothing happening immediately.  
+
 [![Udacity - Self-Driving Car NanoDegree](https://s3.amazonaws.com/udacity-sdc/github/shield-carnd.svg)](http://www.udacity.com/drive)
 
 Overview
