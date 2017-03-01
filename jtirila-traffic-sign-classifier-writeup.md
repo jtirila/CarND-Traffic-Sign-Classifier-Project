@@ -1,6 +1,7 @@
 #**Traffic Sign Recognition** 
 
-** This will be my writeup. Not really started yet, just getting prepared for the project and adding some placeholders here. ** 
+**This will be my writeup. Not really started yet, just getting prepared for the project and adding some
+placeholders here.**
 
 ##Writeup by Juha-Matti Tirilä 
 
@@ -30,24 +31,28 @@ The goals / steps of this project are the following:
 
 ## Rubric Points
 
-** Addition begins: essential parts of rubric copied here **
+**Addition begins: essential parts of rubric copied here**
 
 The rubric points are: 
 
 ### Files submitted 
 * The project submission includes all required files.
+
 ### Dataset exploration
 * The submission includes a basic summary of the data set.
 * The submission includes an exploratory visualization on the dataset.
+
 ### Design and Test a Model Architecture
 * The submission describes the preprocessing techniques used and why these techniques were chosen.
 * The submission provides details of the characteristics and qualities of the architecture, such as the type of model used, the number of layers, the size of each layer. Visualizations emphasizing particular qualities of the architecture are encouraged.
 * The submission describes how the model was trained by discussing what optimizer was used, batch size, number of epochs and values for hyperparameters.
 * The project thoroughly discusses the approach taken for deriving and designing a model architecture fit for solving the problem given.
+
 ### Test a Model on New Images
 * The submission includes five new German Traffic signs found on the web, and the images are visualized. Discussion is made as to any particular qualities of the images or traffic signs in the images that may be of interest, such as whether they would be difficult for the model to classify.
 * The submission documents the performance of the model when tested on the captured images. The performance on the new images is compared to the accuracy results of the test set.
 * The top five softmax probabilities of the predictions on the captured images are outputted. The submission discusses how certain or uncertain the model is of its predictions.
+
 ### Standout instructions:
 
 #### Augment the Training Data
@@ -80,7 +85,7 @@ augment the data set or how to fine tune the model.
 For each of the five new images, create a graphic visualization of the soft-max
 probabilities. Bar charts might work well.
 
-** Addition ends: essential parts of rubric copied here **
+**Addition ends: essential parts of rubric copied here**
 
 ###Here I will consider the [rubric points](https://review.udacity.com/#!/rubrics/481/view) individually and describe how I addressed each point in my implementation.  
 
