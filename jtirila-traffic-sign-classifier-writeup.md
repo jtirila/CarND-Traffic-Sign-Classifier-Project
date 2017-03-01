@@ -1,8 +1,8 @@
 #**Traffic Sign Recognition** 
 
-##Writeup Template
+** This will be my writeup. Not really started yet, just getting prepared for the project and adding some placeholders here. ** 
 
-###You can use this file as a template for your writeup if you want to submit it as a markdown file, but feel free to use some other method and submit a pdf if you prefer.
+##Writeup by Juha-Matti Tirilä 
 
 ---
 
@@ -29,14 +29,68 @@ The goals / steps of this project are the following:
 [image8]: ./examples/placeholder.png "Traffic Sign 5"
 
 ## Rubric Points
+
+** Addition begins: essential parts of rubric copied here **
+
+The rubric points are: 
+
+### Files submitted 
+* The project submission includes all required files.
+### Dataset exploration
+* The submission includes a basic summary of the data set.
+* The submission includes an exploratory visualization on the dataset.
+### Design and Test a Model Architecture
+* The submission describes the preprocessing techniques used and why these techniques were chosen.
+* The submission provides details of the characteristics and qualities of the architecture, such as the type of model used, the number of layers, the size of each layer. Visualizations emphasizing particular qualities of the architecture are encouraged.
+* The submission describes how the model was trained by discussing what optimizer was used, batch size, number of epochs and values for hyperparameters.
+* The project thoroughly discusses the approach taken for deriving and designing a model architecture fit for solving the problem given.
+### Test a Model on New Images
+* The submission includes five new German Traffic signs found on the web, and the images are visualized. Discussion is made as to any particular qualities of the images or traffic signs in the images that may be of interest, such as whether they would be difficult for the model to classify.
+* The submission documents the performance of the model when tested on the captured images. The performance on the new images is compared to the accuracy results of the test set.
+* The top five softmax probabilities of the predictions on the captured images are outputted. The submission discusses how certain or uncertain the model is of its predictions.
+### Standout instructions:
+
+#### Augment the Training Data
+
+Augmenting the training set might help improve model performance. Common data
+augmentation techniques include rotatiion, translation, zoom, flips, and/or
+color perturbation. These techniques can be used individually or combined.
+
+#### Analyze New Image Performance in More Detail
+
+Calculating the accuracy on these five German traffic sign images found on the
+web might not give a comprehensive overview of how well the model is
+performing. Consider ways to do a more detailed analysis of model performance
+by looking at predictions in more detail. For example, calculate the precision
+and recall for each traffic sign type from the test set and then compare
+performance on these five new images..
+
+If one of the new images is a stop sign but was predicted to be a bumpy road
+sign, then we might expect a low recall for stop signs. In other words, the
+model has trouble predicting on stop signs. If one of the new images is a 100
+km/h sign but was predicted to be a stop sign, we might expect precision to be
+low for stop signs. In other words, if the model says something is a stop sign,
+we're not very sure that it really is a stop sign.
+
+Looking at performance of individual sign types can help guide how to better
+augment the data set or how to fine tune the model.  
+
+#### Create Visualizations of the Softmax Probabilities
+
+For each of the five new images, create a graphic visualization of the soft-max
+probabilities. Bar charts might work well.
+
+** Addition ends: essential parts of rubric copied here **
+
 ###Here I will consider the [rubric points](https://review.udacity.com/#!/rubrics/481/view) individually and describe how I addressed each point in my implementation.  
 
 ---
 ###Writeup / README
 
-####1. Provide a Writeup / README that includes all the rubric points and how you addressed each one. You can submit your writeup as markdown or pdf. You can use this template as a guide for writing the report. The submission includes the project code.
+####1. Provide a Writeup / README that includes all the rubric points and how you addressed each one. You can submit your 
+writeup as markdown or pdf. You can use this template as a guide for writing the report. The submission includes the project code.
 
-You're reading it! and here is a link to my [project code](https://github.com/udacity/CarND-Traffic-Sign-Classifier-Project/blob/master/Traffic_Sign_Classifier.ipynb)
+You're reading it! and here is a link to my [project code](https://github.com/jtirila/CarND-Traffic-Sign-Classifier-Project/blob/master/Traffic_Sign_Classifier.ipynb)
 
 ###Data Set Summary & Exploration
 
@@ -97,17 +151,17 @@ The code for my final model is located in the seventh cell of the ipython notebo
 
 My final model consisted of the following layers:
 
-| Layer         		|     Description	        					| 
+| Layer                 |     Description                               |
 |:---------------------:|:---------------------------------------------:| 
-| Input         		| 32x32x3 RGB image   							| 
-| Convolution 3x3     	| 1x1 stride, same padding, outputs 32x32x64 	|
-| RELU					|												|
-| Max pooling	      	| 2x2 stride,  outputs 16x16x64 				|
-| Convolution 3x3	    | etc.      									|
-| Fully connected		| etc.        									|
-| Softmax				| etc.        									|
-|						|												|
-|						|												|
+| Input                 | 32x32x3 RGB image                             |
+| Convolution 3x3       | 1x1 stride, same padding, outputs 32x32x64    |
+| RELU                  |                                               |
+| Max pooling           | 2x2 stride,  outputs 16x16x64                 |
+| Convolution 3x3       | etc.                                          |
+| Fully connected       | etc.                                          |
+| Softmax               | etc.                                          |
+|                       |                                               |
+|                       |                                               |
  
 
 
@@ -156,13 +210,13 @@ The code for making predictions on my final model is located in the tenth cell o
 
 Here are the results of the prediction:
 
-| Image			        |     Prediction	        					| 
+| Image           |     Prediction                                      | 
 |:---------------------:|:---------------------------------------------:| 
-| Stop Sign      		| Stop sign   									| 
-| U-turn     			| U-turn 										|
-| Yield					| Yield											|
-| 100 km/h	      		| Bumpy Road					 				|
-| Slippery Road			| Slippery Road      							|
+| Stop Sign                     | Stop sign                             | 
+| U-turn                        | U-turn                                |
+| Yield                         | Yield                                 |
+| 100 km/h                      | Bumpy Road                            |
+| Slippery Road                 | Slippery Road                         |
 
 
 The model was able to correctly guess 4 of the 5 traffic signs, which gives an accuracy of 80%. This compares favorably to the accuracy on the test set of ...
@@ -173,13 +227,13 @@ The code for making predictions on my final model is located in the 11th cell of
 
 For the first image, the model is relatively sure that this is a stop sign (probability of 0.6), and the image does contain a stop sign. The top five soft max probabilities were
 
-| Probability         	|     Prediction	        					| 
+| Probability           |     Prediction                                | 
 |:---------------------:|:---------------------------------------------:| 
-| .60         			| Stop sign   									| 
-| .20     				| U-turn 										|
-| .05					| Yield											|
-| .04	      			| Bumpy Road					 				|
-| .01				    | Slippery Road      							|
+| .60                   | Stop sign                                     | 
+| .20                   | U-turn                                        |
+| .05                   | Yield                                         |
+| .04                   | Bumpy Road                                    |
+| .01                   | Slippery Road                                 |
 
 
 For the second image ... 
