@@ -42,11 +42,11 @@ def training_pipeline(mnist_test=True):
         X_train, y_train = shuffle(X_train, y_train)
         X_valid, y_valid = shuffle(X_valid, y_valid)
 
-    _print_training_data_basic_summary()
-    _visualize_data(X_train, y_train)
+    # _print_training_data_basic_summary()
+    # _visualize_data(X_train, y_train)
     # X_train, X_valid = _preprocess_data(X_train, X_valid)
-    _visualize_data(X_train, y_train)
-    print("Moving on")
+    # _visualize_data(X_train, y_train)
+    # print("Moving on")
 
     # Work with the actual model begins
     network = _define_model_architecture()
@@ -66,6 +66,7 @@ def _load_test_validation_data():
     X_test = np.pad(X_test, ((0, 0), (2, 2), (2, 2), (0, 0)), 'constant')
     X_test, y_test = shuffle(X_test, y_test)
     return X_test, y_test
+
 
 def _load_test_data():
     """Loads the mnist character data. This is a short-term placeholder to get building something before getting the
@@ -105,7 +106,7 @@ def _load_data_file(path):
 
 
 
-def _print_training_data_basic_summary():
+def _print_training_data_basic_summary(X_train, y_train, X_valid, y_valid):
     # ### Replace each question mark with the appropriate value.
     # ### Use python, pandas or numpy methods rather than hard coding the results
 
@@ -138,7 +139,6 @@ def _visualize_data(X_train, y_train):
     plt.show()
 
     print(y_train[index])
-    pass
 
 
 # def _grayscale_image(img):
@@ -191,8 +191,8 @@ def _evaluate(X_data, y_data, batch_size, accuracy_operation, x, y):
 # TODO: definition
 
 def _first_convolutional_layer(input, mu, sigma):
-    F_W = tf.Variable(tf.truncated_normal([5, 5, 3, 6], mu, sigma), name='first_convo_weights')
-    F_b = tf.Variable(tf.zeros([6]), name='first_convo_biases')
+    F_W = tf.Variable(tf.truncated_normal([5, 5, 3, 10], mu, sigma), name='first_convo_weights')
+    F_b = tf.Variable(tf.zeros([10]), name='first_convo_biases')
 
     strides = [1, 1, 1, 1]
     padding = 'VALID'
@@ -201,8 +201,8 @@ def _first_convolutional_layer(input, mu, sigma):
 
 
 def _second_convolutional_layer(input, mu, sigma):
-    F_W = tf.Variable(tf.truncated_normal([5, 5, 6, 16], mu, sigma), name='second_convo_weights')
-    F_b = tf.Variable(tf.zeros([16]), name='second_convo_biases')
+    F_W = tf.Variable(tf.truncated_normal([5, 5, 10, 20], mu, sigma), name='second_convo_weights')
+    F_b = tf.Variable(tf.zeros([20]), name='second_convo_biases')
     strides = [1, 1, 1, 1]
     padding = 'VALID'
     return tf.add(tf.nn.conv2d(input, F_W, strides, padding), F_b)
@@ -223,7 +223,7 @@ def _second_pooling(input):
 
 
 def _first_fully_connected(input):
-    F_W = tf.Variable(tf.truncated_normal([400, 120]), name='first_full_weights')
+    F_W = tf.Variable(tf.truncated_normal([500, 120]), name='first_full_weights')
     F_b = tf.zeros([120], name='first_full_biases')
     return tf.add(tf.matmul(input, F_W), F_b)
 
@@ -242,8 +242,8 @@ def _third_fully_connected(input):
 
 def _LeNet(x):
 
-    mu = 0
-    sigma = 0.1
+    mu = 0.0
+    sigma = 0.25
     layer = _first_convolutional_layer(x, mu, sigma)
     layer = tf.nn.relu(layer)
     layer = _first_pooling(layer)
@@ -274,9 +274,9 @@ def _define_model_architecture():
     logits = _LeNet(network_topology['x'])
     network_topology['cross_entropy'] = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=one_hot_y)
 
-    learning_rate = 0.001
-    network_topology['epochs'] = 30
-    network_topology['batch_size'] = 128
+    learning_rate = 0.0005
+    network_topology['epochs'] = 100
+    network_topology['batch_size'] = 256
 
     loss_operation = tf.reduce_mean(network_topology['cross_entropy'])
     optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
@@ -315,7 +315,6 @@ def _train_network_and_save_params(network, X_train, y_train, X_valid, y_valid):
             validation_accuracy = _evaluate(X_valid, y_valid, batch_size, accuracy_operation, x, y)
             print("EPOCH {} ...".format(i + 1))
             print("Validation Accuracy = {:.6f}".format(validation_accuracy))
-            print()
 
         name = tf.train.Saver().save(sess, './lenet.ckpt')
         print("Model saved, model name: {}".format(name))
