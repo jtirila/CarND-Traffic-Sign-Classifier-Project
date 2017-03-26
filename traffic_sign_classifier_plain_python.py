@@ -42,21 +42,15 @@ def training_pipeline(mnist_test=True):
         X_train, y_train = shuffle(X_train, y_train)
         X_valid, y_valid = shuffle(X_valid, y_valid)
 
-    X_train = X_train[:20000]
-    y_train = y_train[:20000]
-
-    X_valid = X_valid[:10000]
-    y_valid = y_valid[:10000]
-    # These three currently do nothing.
     _print_training_data_basic_summary()
     _visualize_data(X_train, y_train)
-    new_x_train, new_x_valid = _preprocess_data(X_train, X_valid)
+    # X_train, X_valid = _preprocess_data(X_train, X_valid)
     _visualize_data(X_train, y_train)
     print("Moving on")
 
     # Work with the actual model begins
     network = _define_model_architecture()
-    _train_network_and_save_params(network, new_x_train, y_train, new_x_valid, y_valid)
+    _train_network_and_save_params(network, X_train, y_train, X_valid, y_valid)
 
 
 def _load_real_validation_data():
@@ -139,41 +133,47 @@ def _visualize_data(X_train, y_train):
     index = random.randint(0, len(X_train))
     image = X_train[index].squeeze()
 
-    plt.figure(figsize=(1,1))
-    plt.imshow(image, cmap="gray")
+    plt.figure(figsize=(1, 1))
+    plt.imshow(image)
     plt.show()
 
     print(y_train[index])
     pass
 
 
-def _grayscale_image(img):
-    return cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+# def _grayscale_image(img):
+#     return cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+#     return img
 
 
-def make_output_dimension(batch):
-    """This is currently dumb and slow, make it faster! There is probably also a completely different way of preparing the 'output dimension'"""
-    ind = 0
-    new_batch = []
-    for image in batch:
-        ind += 1
-        if not ind % 10:
-            print("Round {}".format(ind))
-        new_image = np.zeros((32, 32, 1))
-        for row in range(32):
-            for column in range(32):
-                new_image[row][column] = [image[row][column]]
-        new_batch.append(new_image)
+# def make_output_dimension(batch):
+#     """This is currently dumb and slow, make it faster! There is probably also a completely different way of preparing the 'output dimension'"""
+#     ind = 0
+#     new_batch = []
+#     for image in batch:
+#         ind += 1
+#         if not ind % 10:
+#             print("Round {}".format(ind))
+#         new_image = np.zeros((32, 32, 1))
+#         for row in range(32):
+#             for column in range(32):
+#                 new_image[row][column] = [image[row][column]]
+#         new_batch.append(new_image)
+#
+#     return new_batch
 
-    return new_batch
 
 def _preprocess_data(X_train, X_valid):
-    X_train = list(map(_grayscale_image, X_train))
-    X_valid = list(map(_grayscale_image, X_valid))
-    new_x_train = make_output_dimension(X_train)
-    new_x_valid = make_output_dimension(X_valid)
+    """Todo: do nothing right now. Must change this function to accept also test set only"""
+    return X_train, X_valid
 
-    return new_x_train, new_x_valid
+    # X_train = list(map(_grayscale_image, X_train))
+    # X_valid = list(map(_grayscale_image, X_valid))
+    # new_x_train = make_output_dimension(X_train)
+    # new_x_valid = make_output_dimension(X_valid)
+
+    # return new_x_train, new_x_valid
+
 
 
 def _evaluate(X_data, y_data, batch_size, accuracy_operation, x, y):
@@ -191,7 +191,7 @@ def _evaluate(X_data, y_data, batch_size, accuracy_operation, x, y):
 # TODO: definition
 
 def _first_convolutional_layer(input, mu, sigma):
-    F_W = tf.Variable(tf.truncated_normal([5, 5, 1, 6], mu, sigma), name='first_convo_weights')
+    F_W = tf.Variable(tf.truncated_normal([5, 5, 3, 6], mu, sigma), name='first_convo_weights')
     F_b = tf.Variable(tf.zeros([6]), name='first_convo_biases')
 
     strides = [1, 1, 1, 1]
@@ -266,7 +266,7 @@ def _define_model_architecture():
 
     :return: Nothing, just sets various network topology related tensors."""
 
-    network_topology = dict(x=tf.placeholder(tf.float32, (None, 32, 32, 1)))
+    network_topology = dict(x=tf.placeholder(tf.float32, (None, 32, 32, 3)))
     network_topology['y'] = tf.placeholder(tf.int32, None)
 
     one_hot_y = tf.one_hot(network_topology['y'], 10)
@@ -274,12 +274,12 @@ def _define_model_architecture():
     logits = _LeNet(network_topology['x'])
     network_topology['cross_entropy'] = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=one_hot_y)
 
-    learnign_rate = 0.001
-    network_topology['epochs'] = 5
+    learning_rate = 0.001
+    network_topology['epochs'] = 30
     network_topology['batch_size'] = 128
 
     loss_operation = tf.reduce_mean(network_topology['cross_entropy'])
-    optimizer = tf.train.AdamOptimizer(learning_rate=learnign_rate)
+    optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
 
     network_topology['training_operation'] = optimizer.minimize(loss_operation)
     correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(one_hot_y, 1))
@@ -314,7 +314,7 @@ def _train_network_and_save_params(network, X_train, y_train, X_valid, y_valid):
 
             validation_accuracy = _evaluate(X_valid, y_valid, batch_size, accuracy_operation, x, y)
             print("EPOCH {} ...".format(i + 1))
-            print("Validation Accuracy = {:.3f}".format(validation_accuracy))
+            print("Validation Accuracy = {:.6f}".format(validation_accuracy))
             print()
 
         name = tf.train.Saver().save(sess, './lenet.ckpt')
