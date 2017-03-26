@@ -43,8 +43,17 @@ def training_pipeline(mnist_test=True):
         X_valid, y_valid = shuffle(X_valid, y_valid)
 
     # _print_training_data_basic_summary()
+    # TODO: this is to mitigate the current performance issues, remove when the data structure handling is better.
+    # X_train = X_train[:1000]
+    # X_valid = X_valid[:1000]
+    # y_train = y_train[:1000]
+    # y_valid = y_valid[:1000]
+
+    _print_training_data_basic_summary(X_train, y_train, X_valid, y_valid)
+
+    if not mnist_test:
+        X_train, X_valid = _preprocess_data(X_train, X_valid)
     # _visualize_data(X_train, y_train)
-    # X_train, X_valid = _preprocess_data(X_train, X_valid)
     # _visualize_data(X_train, y_train)
     # print("Moving on")
 
@@ -105,6 +114,10 @@ def _load_data_file(path):
         return pickle.load(f)
 
 
+def _print_test_data_basic_summary(X_test, y_test):
+    """Todo: write this for test data set."""
+    pass
+
 
 def _print_training_data_basic_summary(X_train, y_train, X_valid, y_valid):
     # ### Replace each question mark with the appropriate value.
@@ -112,68 +125,66 @@ def _print_training_data_basic_summary(X_train, y_train, X_valid, y_valid):
 
     # return
     # # TODO: Number of training examples
-    # n_train = ?
+    n_train = len(X_train)
+    n_valid = len(X_valid)
 
-    # # TODO: Number of testing examples.
-    # n_test = ?
 
     # # TODO: What's the shape of an traffic sign image?
-    # image_shape = ?
+    shape = X_train[0].shape
+    image_shape = "{} x {} x {}".format(shape[0], shape[1], shape[2])
 
-    # # TODO: How many unique classes/labels there are in the dataset.
-    # n_classes = ?
+    n_classes = len(set(y_train))
 
-    # print("Number of training examples =", n_train)
-    # print("Number of testing examples =", n_test)
-    # print("Image data shape =", image_shape)
-    # print("Number of classes =", n_classes)
+    print("Number of training examples =", n_train)
+    print("Number of validation examples =", n_valid)
+    print("Image data shape = ", image_shape)
+    print("Number of classes =", n_classes)
     pass
 
 
 def _visualize_data(X_train, y_train):
-    index = random.randint(0, len(X_train))
-    image = X_train[index].squeeze()
+    for _ in range(1):
+        index = random.randint(0, len(X_train))
+        image = X_train[index].squeeze()
 
-    plt.figure(figsize=(1, 1))
-    plt.imshow(image)
-    plt.show()
+        plt.figure(figsize=(1, 1))
+        plt.imshow(image, cmap='gray')
+        plt.show()
 
-    print(y_train[index])
-
-
-# def _grayscale_image(img):
-#     return cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-#     return img
+        print(y_train[index])
 
 
-# def make_output_dimension(batch):
-#     """This is currently dumb and slow, make it faster! There is probably also a completely different way of preparing the 'output dimension'"""
-#     ind = 0
-#     new_batch = []
-#     for image in batch:
-#         ind += 1
-#         if not ind % 10:
-#             print("Round {}".format(ind))
-#         new_image = np.zeros((32, 32, 1))
-#         for row in range(32):
-#             for column in range(32):
-#                 new_image[row][column] = [image[row][column]]
-#         new_batch.append(new_image)
-#
-#     return new_batch
+def _grayscale_image(img):
+    return cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+
+
+def _make_output_dimension(batch):
+    """This is currently dumb and slow, make it faster! There is probably also a completely different way of preparing the 'output dimension'"""
+    ind = 0
+    new_batch = []
+    for image in batch:
+        ind += 1
+        if not ind % 1000:
+            print("Round {}".format(ind))
+        new_image = np.zeros((32, 32, 1))
+        for row in range(32):
+            for column in range(32):
+                new_image[row][column] = [image[row][column]]
+        new_batch.append(new_image)
+
+    return new_batch
 
 
 def _preprocess_data(X_train, X_valid):
-    """Todo: do nothing right now. Must change this function to accept also test set only"""
+    """Todo: Initial steps towards some grayscaling etc."""
+
+
+    X_train = list(map(_grayscale_image, X_train))
+    X_valid = list(map(_grayscale_image, X_valid))
+    X_train = _make_output_dimension(X_train)
+    X_valid = _make_output_dimension(X_valid)
+
     return X_train, X_valid
-
-    # X_train = list(map(_grayscale_image, X_train))
-    # X_valid = list(map(_grayscale_image, X_valid))
-    # new_x_train = make_output_dimension(X_train)
-    # new_x_valid = make_output_dimension(X_valid)
-
-    # return new_x_train, new_x_valid
-
 
 
 def _evaluate(X_data, y_data, batch_size, accuracy_operation, x, y):
@@ -191,8 +202,8 @@ def _evaluate(X_data, y_data, batch_size, accuracy_operation, x, y):
 # TODO: definition
 
 def _first_convolutional_layer(input, mu, sigma):
-    F_W = tf.Variable(tf.truncated_normal([5, 5, 3, 10], mu, sigma), name='first_convo_weights')
-    F_b = tf.Variable(tf.zeros([10]), name='first_convo_biases')
+    F_W = tf.Variable(tf.truncated_normal([5, 5, 1, 6], mu, sigma), name='first_convo_weights')
+    F_b = tf.Variable(tf.zeros([6]), name='first_convo_biases')
 
     strides = [1, 1, 1, 1]
     padding = 'VALID'
@@ -201,8 +212,8 @@ def _first_convolutional_layer(input, mu, sigma):
 
 
 def _second_convolutional_layer(input, mu, sigma):
-    F_W = tf.Variable(tf.truncated_normal([5, 5, 10, 20], mu, sigma), name='second_convo_weights')
-    F_b = tf.Variable(tf.zeros([20]), name='second_convo_biases')
+    F_W = tf.Variable(tf.truncated_normal([5, 5, 6, 16], mu, sigma), name='second_convo_weights')
+    F_b = tf.Variable(tf.zeros([16]), name='second_convo_biases')
     strides = [1, 1, 1, 1]
     padding = 'VALID'
     return tf.add(tf.nn.conv2d(input, F_W, strides, padding), F_b)
@@ -223,27 +234,27 @@ def _second_pooling(input):
 
 
 def _first_fully_connected(input):
-    F_W = tf.Variable(tf.truncated_normal([500, 120]), name='first_full_weights')
-    F_b = tf.zeros([120], name='first_full_biases')
+    F_W = tf.Variable(tf.truncated_normal([400, 120]), name='first_full_weights')
+    F_b = tf.Variable(tf.zeros([120]), name='first_full_biases')
     return tf.add(tf.matmul(input, F_W), F_b)
 
 
 def _second_fully_connected(input):
     F_W = tf.Variable(tf.truncated_normal([120, 84]), name='second_full_weights')
-    F_b = tf.zeros([84], name='second_full_biases')
+    F_b = tf.Variable(tf.zeros([84]), name='second_full_biases')
     return tf.add(tf.matmul(input, F_W), F_b)
 
 
 def _third_fully_connected(input):
-    F_W = tf.Variable(tf.truncated_normal([84, 10]), name='third_full_weights')
-    F_b = tf.zeros([10], name='third_full_biases')
+    F_W = tf.Variable(tf.truncated_normal([84, 43]), name='third_full_weights')
+    F_b = tf.Variable(tf.zeros([43]), name='third_full_biases')
     return tf.add(tf.matmul(input, F_W), F_b)
 
 
 def _LeNet(x):
 
     mu = 0.0
-    sigma = 0.25
+    sigma = 0.001
     layer = _first_convolutional_layer(x, mu, sigma)
     layer = tf.nn.relu(layer)
     layer = _first_pooling(layer)
@@ -266,21 +277,27 @@ def _define_model_architecture():
 
     :return: Nothing, just sets various network topology related tensors."""
 
-    network_topology = dict(x=tf.placeholder(tf.float32, (None, 32, 32, 3)))
-    network_topology['y'] = tf.placeholder(tf.int32, None)
+    x = tf.placeholder(tf.float32, (None, 32, 32, None))
+    y = tf.placeholder(tf.int32, None)
+    network_topology = dict(x=x)
+    network_topology['y'] = y
 
-    one_hot_y = tf.one_hot(network_topology['y'], 10)
+    one_hot_y = tf.one_hot(y, 43)
 
-    logits = _LeNet(network_topology['x'])
-    network_topology['cross_entropy'] = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=one_hot_y)
+    logits = _LeNet(x)
+    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=one_hot_y)
 
-    learning_rate = 0.0005
-    network_topology['epochs'] = 100
-    network_topology['batch_size'] = 256
+    learning_rate = 0.0001
+    epochs = 500
+    batch_size = 128
 
-    loss_operation = tf.reduce_mean(network_topology['cross_entropy'])
+    network_topology['epochs'] = epochs
+    network_topology['batch_size'] = batch_size
+
+    loss_operation = tf.reduce_mean(cross_entropy)
     optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
 
+    network_topology['loss_operation'] = loss_operation
     network_topology['training_operation'] = optimizer.minimize(loss_operation)
     correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(one_hot_y, 1))
     network_topology['accuracy_operation'] = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
