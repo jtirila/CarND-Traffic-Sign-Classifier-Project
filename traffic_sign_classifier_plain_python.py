@@ -178,6 +178,7 @@ def _make_output_dimension(batch):
 def _preprocess_data(X_train, X_valid):
     """Todo: Initial steps towards some grayscaling etc."""
 
+    return X_train, X_valid
 
     X_train = list(map(_grayscale_image, X_train))
     X_valid = list(map(_grayscale_image, X_valid))
@@ -202,7 +203,7 @@ def _evaluate(X_data, y_data, batch_size, accuracy_operation, x, y):
 # TODO: definition
 
 def _first_convolutional_layer(input, mu, sigma):
-    F_W = tf.Variable(tf.truncated_normal([5, 5, 1, 6], mu, sigma), name='first_convo_weights')
+    F_W = tf.Variable(tf.truncated_normal([5, 5, 3, 6], mu, sigma), name='first_convo_weights')
     F_b = tf.Variable(tf.zeros([6]), name='first_convo_biases')
 
     strides = [1, 1, 1, 1]
