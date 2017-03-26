@@ -234,20 +234,25 @@ def _second_pooling(input):
 
 
 def _first_fully_connected(input):
-    F_W = tf.Variable(tf.truncated_normal([400, 120]), name='first_full_weights')
-    F_b = tf.Variable(tf.zeros([120]), name='first_full_biases')
+    F_W = tf.Variable(tf.truncated_normal([400, 400]), name='first_full_weights')
+    F_b = tf.Variable(tf.zeros([400]), name='first_full_biases')
     return tf.add(tf.matmul(input, F_W), F_b)
 
 
 def _second_fully_connected(input):
-    F_W = tf.Variable(tf.truncated_normal([120, 84]), name='second_full_weights')
-    F_b = tf.Variable(tf.zeros([84]), name='second_full_biases')
+    F_W = tf.Variable(tf.truncated_normal([400, 120]), name='second_full_weights')
+    F_b = tf.Variable(tf.zeros([120]), name='second_full_biases')
+    return tf.add(tf.matmul(input, F_W), F_b)
+
+def _third_fully_connected(input):
+    F_W = tf.Variable(tf.truncated_normal([120, 84]), name='third_full_weights')
+    F_b = tf.Variable(tf.zeros([84]), name='third_full_biases')
     return tf.add(tf.matmul(input, F_W), F_b)
 
 
-def _third_fully_connected(input):
-    F_W = tf.Variable(tf.truncated_normal([84, 43]), name='third_full_weights')
-    F_b = tf.Variable(tf.zeros([43]), name='third_full_biases')
+def _fourth_fully_connected(input):
+    F_W = tf.Variable(tf.truncated_normal([84, 43]), name='fourth_full_weights')
+    F_b = tf.Variable(tf.zeros([43]), name='fourth_full_biases')
     return tf.add(tf.matmul(input, F_W), F_b)
 
 
@@ -262,11 +267,13 @@ def _LeNet(x):
     layer = tf.nn.relu(layer)
     layer = _second_pooling(layer)
     layer = flatten(layer)
-    layer = _first_fully_connected(layer)
-    layer = tf.nn.relu(layer)
+    layer = tf.nn.dropout(layer, 0.8)
     layer = _second_fully_connected(layer)
     layer = tf.nn.relu(layer)
+    layer = tf.nn.dropout(layer, 0.8)
     layer = _third_fully_connected(layer)
+    layer = tf.nn.relu(layer)
+    layer = _fourth_fully_connected(layer)
     return layer
 
 
@@ -288,7 +295,7 @@ def _define_model_architecture():
     cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=one_hot_y)
 
     learning_rate = 0.0001
-    epochs = 500
+    epochs = 1000
     batch_size = 128
 
     network_topology['epochs'] = epochs
