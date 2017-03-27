@@ -180,12 +180,12 @@ def _preprocess_data(X_train, X_valid):
 
     return X_train, X_valid
 
-    X_train = list(map(_grayscale_image, X_train))
-    X_valid = list(map(_grayscale_image, X_valid))
-    X_train = _make_output_dimension(X_train)
-    X_valid = _make_output_dimension(X_valid)
+    # X_train = list(map(_grayscale_image, X_train))
+    # X_valid = list(map(_grayscale_image, X_valid))
+    # X_train = _make_output_dimension(X_train)
+    # X_valid = _make_output_dimension(X_valid)
 
-    return X_train, X_valid
+    # return X_train, X_valid
 
 
 def _evaluate(X_data, y_data, batch_size, accuracy_operation, x, y):
