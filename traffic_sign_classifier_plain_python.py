@@ -241,15 +241,10 @@ def _first_fully_connected(input):
 
 
 def _second_fully_connected(input):
-    F_W = tf.Variable(tf.truncated_normal([120, 84]), name='second_full_weights')
-    F_b = tf.Variable(tf.zeros([84]), name='second_full_biases')
+    F_W = tf.Variable(tf.truncated_normal([120, 43]), name='second_full_weights')
+    F_b = tf.Variable(tf.zeros([43]), name='second_full_biases')
     return tf.add(tf.matmul(input, F_W), F_b)
 
-
-def _third_fully_connected(input):
-    F_W = tf.Variable(tf.truncated_normal([84, 43]), name='third_full_weights')
-    F_b = tf.Variable(tf.zeros([43]), name='third_full_biases')
-    return tf.add(tf.matmul(input, F_W), F_b)
 
 
 def _LeNet(x):
@@ -266,8 +261,6 @@ def _LeNet(x):
     layer = _first_fully_connected(layer)
     layer = tf.nn.relu(layer)
     layer = _second_fully_connected(layer)
-    layer = tf.nn.relu(layer)
-    layer = _third_fully_connected(layer)
     return layer
 
 
