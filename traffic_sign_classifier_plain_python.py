@@ -143,7 +143,7 @@ def _visualize_data(X_train, y_train):
         image = X_train[index].squeeze()
 
         plt.figure(figsize=(1, 1))
-        plt.imshow(image)
+        plt.imshow(image, cmap='gray')
         plt.show()
 
         print(y_train[index])
@@ -171,7 +171,7 @@ def _evaluate(X_data, y_data, batch_size, accuracy_operation, x, y):
 # TODO: definition
 
 def _first_convolutional_layer(input, mu, sigma):
-    F_W = tf.Variable(tf.truncated_normal([5, 5, 3, 6], mu, sigma), name='first_convo_weights')
+    F_W = tf.Variable(tf.truncated_normal([5, 5, 1, 6], mu, sigma), name='first_convo_weights')
     F_b = tf.Variable(tf.zeros([6]), name='first_convo_biases')
 
     strides = [1, 1, 1, 1]
@@ -209,8 +209,8 @@ def _first_fully_connected(input):
 
 
 def _second_fully_connected(input):
-    F_W = tf.Variable(tf.truncated_normal([120, 43]), name='second_full_weights')
-    F_b = tf.Variable(tf.zeros([43]), name='second_full_biases')
+    F_W = tf.Variable(tf.truncated_normal([120, 10]), name='second_full_weights')
+    F_b = tf.Variable(tf.zeros([10]), name='second_full_biases')
     return tf.add(tf.matmul(input, F_W), F_b)
 
 
@@ -244,7 +244,7 @@ def _define_model_architecture():
     network_topology = dict(x=x)
     network_topology['y'] = y
 
-    one_hot_y = tf.one_hot(y, 43)
+    one_hot_y = tf.one_hot(y, 10)
 
     logits = _LeNet(x)
     cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=one_hot_y)
@@ -345,5 +345,5 @@ def _outputFeatureMap(image_input, tf_activation, activation_min=-1, activation_
 
 
 if __name__ == "__main__":
-    training_pipeline(mnist_test=False)
+    training_pipeline(mnist_test=True)
     # testing_pipeline()
