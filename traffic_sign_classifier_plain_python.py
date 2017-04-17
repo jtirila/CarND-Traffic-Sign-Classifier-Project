@@ -16,13 +16,11 @@ import numpy as np
 
 # This is currently just a modification of the LeNet lab, architected for some modularity and better persistence etc.
 
+# Some global variables
+
 TRAINING_FILE = '/home/jtirila/Data/german-traffic-signs/train.p'
 VALIDATION_FILE = '/home/jtirila/Data/german-traffic-signs/valid.p'
 TESTING_FILE = '/home/jtirila/Data/german-traffic-signs/test.p'
-
-# Some global variables
-
-# Training parameters:
 
 
 def testing_pipeline():
@@ -53,8 +51,7 @@ def training_pipeline(mnist_test=True):
 
     if not mnist_test:
         X_train, X_valid = _preprocess_data(X_train, X_valid)
-    # _visualize_data(X_train, y_train)
-    # _visualize_data(X_train, y_train)
+    _visualize_data(X_train, y_train)
     # print("Moving on")
 
     # Work with the actual model begins
@@ -104,12 +101,11 @@ def _load_previously_saved_data():
     test = _load_data_file(TESTING_FILE)
     return train, valid, test
 
-    # Set the global variables
-
 
 def _load_data_file(path):
     """Loads a single file.
-    :param path: A path, pointing to a pickled data file."""
+    :param path: A path, pointing to a pickled data file.
+    :return: a depickled data file"""
     with open(path, mode='rb') as f:
         return pickle.load(f)
 
@@ -139,53 +135,25 @@ def _print_training_data_basic_summary(X_train, y_train, X_valid, y_valid):
     print("Number of validation examples =", n_valid)
     print("Image data shape = ", image_shape)
     print("Number of classes =", n_classes)
-    pass
 
 
 def _visualize_data(X_train, y_train):
-    for _ in range(1):
+    for _ in range(30):
         index = random.randint(0, len(X_train))
         image = X_train[index].squeeze()
 
         plt.figure(figsize=(1, 1))
-        plt.imshow(image, cmap='gray')
+        plt.imshow(image)
         plt.show()
 
         print(y_train[index])
 
 
-def _grayscale_image(img):
-    return cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-
-
-def _make_output_dimension(batch):
-    """This is currently dumb and slow, make it faster! There is probably also a completely different way of preparing the 'output dimension'"""
-    ind = 0
-    new_batch = []
-    for image in batch:
-        ind += 1
-        if not ind % 1000:
-            print("Round {}".format(ind))
-        new_image = np.zeros((32, 32, 1))
-        for row in range(32):
-            for column in range(32):
-                new_image[row][column] = [image[row][column]]
-        new_batch.append(new_image)
-
-    return new_batch
-
-
 def _preprocess_data(X_train, X_valid):
     """Todo: Initial steps towards some grayscaling etc."""
 
+    # TODO: find out ways to preprocess the data in meaningful ways.
     return X_train, X_valid
-
-    # X_train = list(map(_grayscale_image, X_train))
-    # X_valid = list(map(_grayscale_image, X_valid))
-    # X_train = _make_output_dimension(X_train)
-    # X_valid = _make_output_dimension(X_valid)
-
-    # return X_train, X_valid
 
 
 def _evaluate(X_data, y_data, batch_size, accuracy_operation, x, y):
