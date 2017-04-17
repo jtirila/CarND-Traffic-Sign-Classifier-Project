@@ -23,6 +23,11 @@ VALIDATION_FILE = '/home/jtirila/Data/german-traffic-signs/valid.p'
 TESTING_FILE = '/home/jtirila/Data/german-traffic-signs/test.p'
 
 
+LEARNING_RATE = 0.001
+EPOCHS = 500
+BATCH_SIZE = 128
+
+
 def testing_pipeline():
     """Load test data and previously saved model, print statistics."""
     X_test, y_test = _load_real_validation_data()
@@ -41,11 +46,7 @@ def training_pipeline(mnist_test=True):
         X_valid, y_valid = shuffle(X_valid, y_valid)
 
     # _print_training_data_basic_summary()
-    # TODO: this is to mitigate the current performance issues, remove when the data structure handling is better.
-    # X_train = X_train[:1000]
-    # X_valid = X_valid[:1000]
-    # y_train = y_train[:1000]
-    # y_valid = y_valid[:1000]
+    # X_train, y_train, X_valid, y_valid = X_train[:5000], y_train[:5000], X_valid[:3000], y_valid[:3000]
 
     _print_training_data_basic_summary(X_train, y_train, X_valid, y_valid)
 
@@ -170,66 +171,60 @@ def _evaluate(X_data, y_data, batch_size, accuracy_operation, x, y):
 # TODO: these layer methods probably don't make sense on their own, just include them all in the network architecture
 # TODO: definition
 
-def _first_convolutional_layer(input, mu, sigma):
-    F_W = tf.Variable(tf.truncated_normal([5, 5, 3, 6], mu, sigma), name='first_convo_weights')
-    F_b = tf.Variable(tf.zeros([6]), name='first_convo_biases')
-
-    strides = [1, 1, 1, 1]
-    padding = 'VALID'
-
-    return tf.add(tf.nn.conv2d(input, F_W, strides, padding), F_b)
-
-
-def _second_convolutional_layer(input, mu, sigma):
-    F_W = tf.Variable(tf.truncated_normal([5, 5, 6, 16], mu, sigma), name='second_convo_weights')
-    F_b = tf.Variable(tf.zeros([16]), name='second_convo_biases')
-    strides = [1, 1, 1, 1]
-    padding = 'VALID'
-    return tf.add(tf.nn.conv2d(input, F_W, strides, padding), F_b)
-
-
-def _first_pooling(input):
-    ksize = [1, 2, 2, 1]
-    strides = [1, 2, 2, 1]
-    padding = 'SAME'
-    return tf.nn.max_pool(input, ksize, strides, padding)
-
-
-def _second_pooling(input):
-    ksize = [1, 2, 2, 1]
-    strides = [1, 2, 2, 1]
-    padding = 'SAME'
-    return tf.nn.max_pool(input, ksize, strides, padding)
-
-
-def _first_fully_connected(input):
-    F_W = tf.Variable(tf.truncated_normal([400, 120]), name='first_full_weights')
-    F_b = tf.Variable(tf.zeros([120]), name='first_full_biases')
-    return tf.add(tf.matmul(input, F_W), F_b)
-
-
-def _second_fully_connected(input):
-    F_W = tf.Variable(tf.truncated_normal([120, 43]), name='second_full_weights')
-    F_b = tf.Variable(tf.zeros([43]), name='second_full_biases')
-    return tf.add(tf.matmul(input, F_W), F_b)
-
-
-
 def _LeNet(x):
-
     mu = 0.0
-    sigma = 0.1
-    layer = _first_convolutional_layer(x, mu, sigma)
-    layer = tf.nn.relu(layer)
-    layer = _first_pooling(layer)
-    layer = _second_convolutional_layer(layer, mu, sigma)
-    layer = tf.nn.relu(layer)
-    layer = _second_pooling(layer)
-    layer = flatten(layer)
-    layer = _first_fully_connected(layer)
-    layer = tf.nn.relu(layer)
-    layer = _second_fully_connected(layer)
-    return layer
+    sigma = 0.01
+
+    # First convolutional
+    F_W_1 = tf.Variable(tf.truncated_normal(shape=(5, 5, 3, 6), mean=mu, stddev=sigma), name='first_convo_weights')
+    F_b_1 = tf.Variable(tf.zeros(6), name='first_convo_biases')
+    strides_1 = [1, 1, 1, 1]
+    padding_1 = 'VALID'
+    conv1 = tf.nn.conv2d(x, F_W_1, strides=strides_1, padding=padding_1) + F_b_1
+
+    # First pooling
+    ksize = [1, 2, 2, 1]
+    strides = [1, 2, 2, 1]
+    padding = 'VALID'
+    pool1 = tf.nn.max_pool(conv1, ksize, strides, padding)
+
+    # Second convo
+    F_W_2 = tf.Variable(tf.truncated_normal(shape=(5, 5, 6, 16), mean=mu, stddev=sigma), name='second_convo_weights')
+    F_b_2 = tf.Variable(tf.zeros([16]), name='second_convo_biases')
+    strides_2 = [1, 1, 1, 1]
+    padding_2 = 'VALID'
+    conv2 = tf.nn.conv2d(pool1, F_W_2, strides_2, padding_2) + F_b_2
+
+    # Second pooling
+    ksize = [1, 2, 2, 1]
+    strides = [1, 2, 2, 1]
+    padding = 'VALID'
+    pool2 = tf.nn.max_pool(conv2, ksize, strides, padding)
+
+    flat = flatten(pool2)
+
+    # First fully connected
+    F_W_full_1 = tf.Variable(tf.truncated_normal([400, 120]), name='first_full_weights')
+    F_b_full_2 = tf.Variable(tf.zeros([120]), name='first_full_biases')
+    full1 = tf.add(tf.matmul(flat, F_W_full_1), F_b_full_2)
+
+    # Activation
+    full1 = tf.nn.relu(full1)
+
+    # Second fully connected
+    F_W_full_2 = tf.Variable(tf.truncated_normal([120, 84]), name='second_full_weights')
+    F_b_full_2 = tf.Variable(tf.zeros([84]), name='second_full_biases')
+    full2 = tf.add(tf.matmul(full1, F_W_full_2), F_b_full_2)
+
+    # Activation
+    full2 = tf.nn.relu(full2)
+
+    # Third fully connected
+    F_W_full_3 = tf.Variable(tf.truncated_normal([84, 43]), name='third_full_weights')
+    F_b_full_3 = tf.Variable(tf.zeros([43]), name='third_full_biases')
+    logits = tf.matmul(full2, F_W_full_3) + F_b_full_3
+
+    return logits
 
 
 def _define_model_architecture():
@@ -239,7 +234,7 @@ def _define_model_architecture():
 
     :return: Nothing, just sets various network topology related tensors."""
 
-    x = tf.placeholder(tf.float32, (None, 32, 32, None))
+    x = tf.placeholder(tf.float32, (None, 32, 32, 3))
     y = tf.placeholder(tf.int32, None)
     network_topology = dict(x=x)
     network_topology['y'] = y
@@ -249,15 +244,11 @@ def _define_model_architecture():
     logits = _LeNet(x)
     cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=one_hot_y)
 
-    learning_rate = 0.001
-    epochs = 500
-    batch_size = 128
-
-    network_topology['epochs'] = epochs
-    network_topology['batch_size'] = batch_size
+    network_topology['epochs'] = EPOCHS
+    network_topology['batch_size'] = BATCH_SIZE
 
     loss_operation = tf.reduce_mean(cross_entropy)
-    optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+    optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
 
     network_topology['loss_operation'] = loss_operation
     network_topology['training_operation'] = optimizer.minimize(loss_operation)
