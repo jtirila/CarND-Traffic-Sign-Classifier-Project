@@ -138,7 +138,7 @@ def _print_training_data_basic_summary(X_train, y_train, X_valid, y_valid):
 
 
 def _visualize_data(X_train, y_train):
-    for _ in range(30):
+    for _ in range(3):
         index = random.randint(0, len(X_train))
         image = X_train[index].squeeze()
 
@@ -218,7 +218,7 @@ def _second_fully_connected(input):
 def _LeNet(x):
 
     mu = 0.0
-    sigma = 0.001
+    sigma = 0.1
     layer = _first_convolutional_layer(x, mu, sigma)
     layer = tf.nn.relu(layer)
     layer = _first_pooling(layer)
@@ -249,7 +249,7 @@ def _define_model_architecture():
     logits = _LeNet(x)
     cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=one_hot_y)
 
-    learning_rate = 0.0001
+    learning_rate = 0.001
     epochs = 500
     batch_size = 128
 
