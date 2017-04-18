@@ -180,6 +180,7 @@ def _first_convo(x, mu, sigma):
     conv1 = tf.nn.conv2d(x, F_W_1, strides=strides_1, padding=padding_1) + F_b_1
     return conv1
 
+
 def _first_pooling(x):
     ksize = [1, 2, 2, 1]
     strides = [1, 2, 2, 1]
@@ -228,7 +229,7 @@ def _third_full(x, mu, sigma):
 
 def _LeNet(x):
     mu = 0.0
-    sigma = 0.005
+    sigma = 0.1
 
 
     conv1 = _first_convo(x, mu, sigma)
