@@ -171,56 +171,79 @@ def _evaluate(X_data, y_data, batch_size, accuracy_operation, x, y):
 # TODO: these layer methods probably don't make sense on their own, just include them all in the network architecture
 # TODO: definition
 
-def _LeNet(x):
-    mu = 0.0
-    sigma = 0.005
 
+def _first_convo(x, mu, sigma):
     F_W_1 = tf.Variable(tf.truncated_normal(shape=(5, 5, 3, 6), mean=mu, stddev=sigma), name='first_convo_weights')
     F_b_1 = tf.Variable(tf.zeros(6), name='first_convo_biases')
     strides_1 = [1, 1, 1, 1]
     padding_1 = 'VALID'
     conv1 = tf.nn.conv2d(x, F_W_1, strides=strides_1, padding=padding_1) + F_b_1
+    return conv1
 
-
+def _first_pooling(x):
     ksize = [1, 2, 2, 1]
     strides = [1, 2, 2, 1]
     padding = 'VALID'
-    pool1 = tf.nn.max_pool(conv1, ksize, strides, padding)
+    pool1 = tf.nn.max_pool(x, ksize, strides, padding)
+    return pool1
 
 
+def _second_convo(x, mu, sigma):
     F_W_2 = tf.Variable(tf.truncated_normal(shape=(5, 5, 6, 16), mean=mu, stddev=sigma), name='second_convo_weights')
     F_b_2 = tf.Variable(tf.zeros([16]), name='second_convo_biases')
     strides_2 = [1, 1, 1, 1]
     padding_2 = 'VALID'
-    conv2 = tf.nn.conv2d(pool1, F_W_2, strides_2, padding_2) + F_b_2
+    conv2 = tf.nn.conv2d(x, F_W_2, strides_2, padding_2) + F_b_2
+    return conv2
 
 
+def _second_pooling(x):
     ksize = [1, 2, 2, 1]
     strides = [1, 2, 2, 1]
     padding = 'VALID'
-    pool2 = tf.nn.max_pool(conv2, ksize, strides, padding)
+    pool2 = tf.nn.max_pool(x, ksize, strides, padding)
+    return pool2
+
+
+def _first_full(x, mu, sigma):
+    F_W_full_1 = tf.Variable(tf.truncated_normal(shape=(400, 120), mean=mu, stddev=sigma), name='first_full_weights')
+    F_b_full_2 = tf.Variable(tf.zeros([120]), name='first_full_biases')
+    full1 = tf.matmul(x, F_W_full_1) + F_b_full_2
+    full1 = tf.nn.relu(full1)
+    return full1
+
+
+def _second_full(x, mu, sigma):
+    F_W_full_2 = tf.Variable(tf.truncated_normal(shape=(120, 84), mean=mu, stddev=sigma), name='second_full_weights')
+    F_b_full_2 = tf.Variable(tf.zeros([84]), name='second_full_biases')
+    full2 = tf.matmul(x, F_W_full_2) + F_b_full_2
+    return tf.nn.relu(full2)
+
+
+def _third_full(x, mu, sigma):
+    F_W_full_3 = tf.Variable(tf.truncated_normal(shape=(84, 43), mean=mu, stddev=sigma), name='third_full_weights')
+    F_b_full_3 = tf.Variable(tf.zeros([43]), name='third_full_biases')
+    return tf.matmul(x, F_W_full_3) + F_b_full_3
+
+
+def _LeNet(x):
+    mu = 0.0
+    sigma = 0.005
+
+
+    conv1 = _first_convo(x, mu, sigma)
+    pool1 = _first_pooling(conv1)
+
+    conv2 = _second_convo(pool1, mu, sigma)
+    pool2 = _second_pooling(conv2)
 
     flat = flatten(pool2)
     flat = tf.nn.dropout(flat, keep_prob=0.9)
 
-    # First fully connected
+    full1 = _first_full(flat, mu, sigma)
+    full2 = _second_full(full1, mu, sigma)
 
-    F_W_full_1 = tf.Variable(tf.truncated_normal(shape=(400, 120), mean=mu, stddev=sigma), name='first_full_weights')
-    F_b_full_2 = tf.Variable(tf.zeros([120]), name='first_full_biases')
-    full1 = tf.matmul(flat, F_W_full_1) + F_b_full_2
-    full1 = tf.nn.relu(full1)
-
-    # Second fully connected
-
-    F_W_full_2 = tf.Variable(tf.truncated_normal(shape=(120, 84), mean=mu, stddev=sigma), name='second_full_weights')
-    F_b_full_2 = tf.Variable(tf.zeros([84]), name='second_full_biases')
-    full2 = tf.matmul(full1, F_W_full_2) + F_b_full_2
-
-    full2 = tf.nn.relu(full2)
-
-    F_W_full_3 = tf.Variable(tf.truncated_normal(shape=(84, 43), mean=mu, stddev=sigma), name='third_full_weights')
-    F_b_full_3 = tf.Variable(tf.zeros([43]), name='third_full_biases')
-    full3 = tf.matmul(full2, F_W_full_3) + F_b_full_3
+    full3 = _third_full(full2, mu, sigma)
 
     return full3
 
