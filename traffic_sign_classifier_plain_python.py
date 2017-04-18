@@ -4,7 +4,10 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 from sklearn.utils import shuffle
 from tensorflow.contrib.layers import flatten
+
+# These are for image transformations
 import cv2
+import csv
 
 import random
 
@@ -12,19 +15,16 @@ import random
 from tensorflow.examples.tutorials.mnist import input_data
 import numpy as np
 
-# For file reading
-
-# This is currently just a modification of the LeNet lab, architected for some modularity and better persistence etc.
-
 # Some global variables
 
 TRAINING_FILE = '/home/jtirila/Data/german-traffic-signs/train.p'
 VALIDATION_FILE = '/home/jtirila/Data/german-traffic-signs/valid.p'
 TESTING_FILE = '/home/jtirila/Data/german-traffic-signs/test.p'
+LABEL_FILE = 'signnames.csv'
 
 
-LEARNING_RATE = 0.001
-EPOCHS = 500
+LEARNING_RATE = 0.0014
+EPOCHS = 100
 BATCH_SIZE = 128
 
 
@@ -73,6 +73,12 @@ def _load_test_validation_data():
     X_test = np.pad(X_test, ((0, 0), (2, 2), (2, 2), (0, 0)), 'constant')
     X_test, y_test = shuffle(X_test, y_test)
     return X_test, y_test
+
+
+
+def _augment_image_data(image):
+    """FIXME get image data as input, return same structure but an augmented version."""
+
 
 
 def _load_test_data():
@@ -139,22 +145,45 @@ def _print_training_data_basic_summary(X_train, y_train, X_valid, y_valid):
 
 
 def _visualize_data(X_train, y_train):
-    for _ in range(3):
-        index = random.randint(0, len(X_train))
-        image = X_train[index].squeeze()
+    label_dict = {}
+    with open('signnames.csv', 'r') as csvfile:
+        datareader = csv.DictReader(csvfile)
+        for row in datareader:
+            label_dict[row['ClassId']] = row['SignName']
 
-        plt.figure(figsize=(1, 1))
-        plt.imshow(image)
-        plt.show()
-
-        print(y_train[index])
+    for i in range(1, 17):
+        plt.subplot(4,4,i)
+        plt.imshow(X_train[i - 1])
+        plt.axis('off')
+        plt.title("{}: {}".format(y_train[i - 1], label_dict[str(y_train[i - 1])][:19]))
+    plt.show()
 
 
 def _preprocess_data(X_train, X_valid):
     """Todo: Initial steps towards some grayscaling etc."""
 
     # TODO: find out ways to preprocess the data in meaningful ways.
-    return X_train, X_valid
+    normalized_train = []
+    normalized_valid = []
+
+    # http://stackoverflow.com/a/38312281
+
+
+    for img in X_train:
+        normalized_train.append(_convert_color_image(img))
+    for img in X_valid:
+        normalized_valid.append(_convert_color_image(img))
+
+    return normalized_train, normalized_valid
+
+def _convert_color_image(img):
+    img_yuv = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
+
+    # equalize the histogram of the Y channel
+    img_yuv[:, :, 0] = cv2.equalizeHist(img_yuv[:, :, 0])
+
+    # convert the YUV image back to RGB format
+    return cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR)
 
 
 def _evaluate(X_data, y_data, batch_size, accuracy_operation, x, y):
@@ -231,26 +260,32 @@ def _LeNet(x):
     mu = 0.0
     sigma = 0.1
 
-
     conv1 = _first_convo(x, mu, sigma)
+    conv1 = tf.nn.l2_normalize(conv1, 0)
+
     pool1 = _first_pooling(conv1)
+    pool1 = tf.nn.l2_normalize(pool1, 0)
 
     conv2 = _second_convo(pool1, mu, sigma)
+    conv2 = tf.nn.l2_normalize(conv2, 0)
     pool2 = _second_pooling(conv2)
 
     flat = flatten(pool2)
-    flat = tf.nn.dropout(flat, keep_prob=0.9)
+    flat = tf.nn.l2_normalize(flat, 0)
 
     full1 = _first_full(flat, mu, sigma)
+    full1 = tf.nn.l2_normalize(full1, 0)
     full2 = _second_full(full1, mu, sigma)
+    full2 = tf.nn.l2_normalize(full2, 0)
 
     full3 = _third_full(full2, mu, sigma)
+    full3 = tf.nn.l2_normalize(full3, 0)
 
     return full3
 
 
 def _define_model_architecture():
-    """Define all the necessary tensowflow stuff here. Variables, losses, layer structure etc. ...
+    """Define all the necessary tensorflow stuff here. Variables, losses, layer structure etc. ...
 
     TODO: Start with e.g. LeNet architecture, then figure out if something fancier should be tried out.
 
@@ -270,12 +305,12 @@ def _define_model_architecture():
     network_topology['batch_size'] = BATCH_SIZE
 
     loss_operation = tf.reduce_mean(cross_entropy)
-    # step = tf.Variable(0, trainable=False)
-    # learning_rate = tf.train.exponential_decay(LEARNING_RATE * 2, step, 100, 0.995)
-    optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
+    step = tf.Variable(0, trainable=False)
+    learning_rate = tf.train.exponential_decay(LEARNING_RATE * 2, step, 100, 0.995)
+    optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
 
     network_topology['loss_operation'] = loss_operation
-    network_topology['training_operation'] = optimizer.minimize(loss_operation)
+    network_topology['training_operation'] = optimizer.minimize(loss_operation, global_step=step)
     correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(one_hot_y, 1))
     network_topology['accuracy_operation'] = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
