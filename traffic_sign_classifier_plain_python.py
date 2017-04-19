@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 from sklearn.utils import shuffle
 from tensorflow.contrib.layers import flatten
+from datetime import datetime
 
 # These are for image transformations
 import cv2
@@ -261,17 +262,17 @@ def _LeNet(x):
     sigma = 0.1
 
     conv1 = _first_convo(x, mu, sigma)
-    conv1 = tf.nn.l2_normalize(conv1, 0)
+    # conv1 = tf.nn.l2_normalize(conv1, 0)
 
     pool1 = _first_pooling(conv1)
-    pool1 = tf.nn.l2_normalize(pool1, 0)
+    # pool1 = tf.nn.l2_normalize(pool1, 0)
 
     conv2 = _second_convo(pool1, mu, sigma)
-    conv2 = tf.nn.l2_normalize(conv2, 0)
+    # conv2 = tf.nn.l2_normalize(conv2, 0)
     pool2 = _second_pooling(conv2)
 
     flat = flatten(pool2)
-    flat = tf.nn.l2_normalize(flat, 0)
+    # flat = tf.nn.l2_normalize(flat, 0)
 
     full1 = _first_full(flat, mu, sigma)
     full1 = tf.nn.l2_normalize(full1, 0)
@@ -305,12 +306,13 @@ def _define_model_architecture():
     network_topology['batch_size'] = BATCH_SIZE
 
     loss_operation = tf.reduce_mean(cross_entropy)
-    step = tf.Variable(0, trainable=False)
-    learning_rate = tf.train.exponential_decay(LEARNING_RATE * 2, step, 100, 0.995)
-    optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+    # step = tf.Variable(0, trainable=False)
+    # learning_rate = tf.train.exponential_decay(LEARNING_RATE * 2, step, 100, 0.995)
+    optimizer = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE)
 
     network_topology['loss_operation'] = loss_operation
-    network_topology['training_operation'] = optimizer.minimize(loss_operation, global_step=step)
+    # network_topology['training_operation'] = optimizer.minimize(loss_operation, global_step=step)
+    network_topology['training_operation'] = optimizer.minimize(loss_operation)
     correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(one_hot_y, 1))
     network_topology['accuracy_operation'] = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
@@ -342,7 +344,7 @@ def _train_network_and_save_params(network, X_train, y_train, X_valid, y_valid):
                 sess.run(training_operation, feed_dict={x: batch_x, y: batch_y})
 
             validation_accuracy = _evaluate(X_valid, y_valid, batch_size, accuracy_operation, x, y)
-            print("EPOCH {} ...".format(i + 1))
+            print("{}: EPOCH {} ...".format(datetime.now(), i + 1))
             print("Validation Accuracy = {:.6f}".format(validation_accuracy))
 
         name = tf.train.Saver().save(sess, './lenet.ckpt')
