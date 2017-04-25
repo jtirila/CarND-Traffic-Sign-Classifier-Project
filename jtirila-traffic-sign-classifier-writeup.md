@@ -1,9 +1,9 @@
-#**Traffic Sign Recognition** 
+# **Traffic Sign Recognition** 
 
 **This will be my writeup. Not really started yet, just getting prepared for the project and adding some
 placeholders here.**
 
-##Writeup by Juha-Matti Tirilä 
+## Writeup by Juha-Matti Tirilä 
 
 ---
 
