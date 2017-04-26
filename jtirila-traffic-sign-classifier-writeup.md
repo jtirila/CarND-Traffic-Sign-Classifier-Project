@@ -39,14 +39,69 @@ The rubric points are:
 * The project submission includes all required files.
 
 ### Dataset exploration
+
+Here is a basic summary of training, validation and testing data sets, including the numbers of images per each of the
+traffic sign categories:
+
+
+| Category | Explanation | Amount in training set | Amount in validation set | Amount in test set |
+| -------- | ----------- | ---------------------: | -----------------------: | -----------------: |
+
+
+Here is the code that was used to produce the table above:
+
+
+```python
+
+# FIXME
+
+ ```
+
+
+Figure FIXME contains an illustration of 9 randomly selected images from the training set.
+
+
+## Intro FIXME
+
+I experimented also with grayscaled images but ended up using the three color channels. However, to enhance image
+contrast, I applied the FIXME transformation. The results of this transform can be seen in figure FIXME that contains
+the processed versions of the same random image set shown in figure FIXME.
+
+Another preprocessing technique I chose to use was training data augomentation. Specifically, I noticed that the relative
+amounts of images from the different traffic sign classes varied greatly. Hence, I wrote a piece of code to even
+out the distribution of images by cloning samples from smaller categories. These cloned images were then randomly rotated
+and scaled so as to not end up with exact copies of the original images but rather slightly varied ones. Figure FIXME
+illustrates this technique. The top row contains a selection of images from category FIXME (FIXME-explanation)
+and subsequent rows some transformed versions of these images.
+
+
+
 * The submission includes a basic summary of the data set.
 * The submission includes an exploratory visualization on the dataset.
 
 ### Design and Test a Model Architecture
+
+The model architecture is a sligthly modified version of the LeNet architecture. The LeNet implementation written
+for previous phases of the curse seemed like a good starting point above all for the nice match of input dimension,
+but also because of the good performance and relative simplicity of the architecture in comparison to some of the
+arguably more advanced architectures.
+
+As the loss function I used FIXME. I tried out a couple of different optimizers, namely AdamOptimizer and FIXME.
+As performance of the model did not seem to really change with the change of optimizer, I decided to stick with FIXME
+due to some of its nice theoretical characteristics: the additions of momentum and FIMXE seem to be a nice remedy
+against getting stuck in local optima. In addition, the FIXME mitigates some corner cases where the optimizer may
+get stuck in an unfortunate suboptimal plane with no obvious gradient direction.
+
+
 * The submission describes the preprocessing techniques used and why these techniques were chosen.
 * The submission provides details of the characteristics and qualities of the architecture, such as the type of model used, the number of layers, the size of each layer. Visualizations emphasizing particular qualities of the architecture are encouraged.
 * The submission describes how the model was trained by discussing what optimizer was used, batch size, number of epochs and values for hyperparameters.
 * The project thoroughly discusses the approach taken for deriving and designing a model architecture fit for solving the problem given.
+
+
+### Perfomance of the model
+
+
 
 ### Test a Model on New Images
 * The submission includes five new German Traffic signs found on the web, and the images are visualized. Discussion is made as to any particular qualities of the images or traffic signs in the images that may be of interest, such as whether they would be difficult for the model to classify.
