@@ -5,12 +5,14 @@ import tensorflow as tf
 from sklearn.utils import shuffle
 from tensorflow.contrib.layers import flatten
 from datetime import datetime
+import copy
 
 # These are for image transformations
 import cv2
 import csv
 
-import random
+from random import random
+
 
 # For testing purposes:
 from tensorflow.examples.tutorials.mnist import input_data
@@ -52,8 +54,10 @@ def training_pipeline(mnist_test=True):
     _print_training_data_basic_summary(X_train, y_train, X_valid, y_valid)
 
     if not mnist_test:
-        X_train, X_valid = _preprocess_data(X_train, X_valid)
+        X_train, X_valid, y_train, y_valid = _preprocess_data(X_train, X_valid, y_train, y_valid)
+        _print_training_data_basic_summary(X_train, y_train, X_valid, y_valid)
     _visualize_data(X_train, y_train)
+    X_train, y_train = shuffle(X_train, y_train)
     # print("Moving on")
 
     # Work with the actual model begins
@@ -152,30 +156,80 @@ def _visualize_data(X_train, y_train):
         for row in datareader:
             label_dict[row['ClassId']] = row['SignName']
 
-    for i in range(1, 17):
+    halfway = len(X_train) // 2
+
+    for i in range(1, 9):
         plt.subplot(4,4,i)
         plt.imshow(X_train[i - 1])
         plt.axis('off')
-        plt.title("{}: {}".format(y_train[i - 1], label_dict[str(y_train[i - 1])][:19]))
+        plt.title("Ind {} - {}: {}".format(i - 1, y_train[i - 1], label_dict[str(y_train[i - 1])][:10]))
+    for i in range(1, 9):
+        plt.subplot(4,4,i + 8)
+        plt.imshow(X_train[halfway + i - 1])
+        plt.axis('off')
+        plt.title("Ind {} - {}: {}".format(halfway + i - 1, y_train[halfway + i - 1], label_dict[str(y_train[halfway + i - 1])][:10]))
     plt.show()
 
 
-def _preprocess_data(X_train, X_valid):
-    """Todo: Initial steps towards some grayscaling etc."""
+def _preprocess_data(X_train, X_valid, y_train, y_valid):
+    """Todo: Initial steps towards some grayscaling etc. Remember, at this point the images have already been shuffled."""
 
     # TODO: find out ways to preprocess the data in meaningful ways.
     normalized_train = []
     normalized_valid = []
+    train_labels = y_train
+    valid_labels = y_valid
 
-    # http://stackoverflow.com/a/38312281
+    # halfway_train = len(X_train) // 2
+    # train_1st_half_copy = X_train[:halfway_train]
+    # train_2st_half_copy = X_train[halfway_train:]
 
+    # labels_train_1st_half = y_train[:halfway_train]
+    # labels_train_2st_half = y_train[halfway_train:]
+
+    # Find the number of occurrences of each of the labels in the training data:
+
+    num_labels = {ind: list(y_train).count(ind) for ind in set(y_train)}
+    max_num_labels = max(num_labels.values())
+
+    for label in num_labels.keys():
+        print("Label: {}".format(label))
+        # Find all images with this label
+        imgs = [img_label[0] for img_label in zip(X_train, y_train) if img_label[1] == label]
+        coeff = max_num_labels / num_labels[label] - 1
+        coeff_int = int(np.floor(coeff))
+        original_length = len(imgs)
+        if coeff_int > 1:
+            imgs_repeated = [img for img in imgs for _ in range(coeff_int)]
+        else:
+            imgs_repeated = imgs[:]
+        max_ind = int((coeff - coeff_int) * original_length)
+        if max_ind > 0:
+            imgs = np.concatenate((imgs_repeated, imgs[:max_ind]))
+        else:
+            imgs = imgs_repeated
+
+        rotation_angles = [24 * (random() - 0.5) for _ in range(len(imgs))]
+        scale_coeffs = [1 + 0.5 * (random() - 0.5) for _ in range(len(imgs))]
+
+        for ind, img in enumerate(imgs):
+            matr = cv2.getRotationMatrix2D((16, 16), rotation_angles[ind], scale_coeffs[ind])
+            imgs[ind] = cv2.warpAffine(img, matr, (32, 32))
+
+        X_train = np.concatenate([X_train, imgs])
+        y_train = np.concatenate([y_train, np.tile(label, len(imgs))])
+
+
+    # Add a slightly scaled version of the other half of the images, with a little bit of added noise.
+
+    # Normalize contrast as per http://stackoverflow.com/a/38312281
 
     for img in X_train:
         normalized_train.append(_convert_color_image(img))
     for img in X_valid:
         normalized_valid.append(_convert_color_image(img))
 
-    return normalized_train, normalized_valid
+    return normalized_train, normalized_valid, y_train, y_valid
 
 def _convert_color_image(img):
     img_yuv = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
