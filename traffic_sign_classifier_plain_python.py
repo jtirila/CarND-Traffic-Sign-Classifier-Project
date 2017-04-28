@@ -5,6 +5,7 @@ import tensorflow as tf
 from sklearn.utils import shuffle
 from tensorflow.contrib.layers import flatten
 from datetime import datetime
+import os
 import copy
 
 # These are for image transformations
@@ -30,6 +31,8 @@ LEARNING_RATE = 0.0014
 EPOCHS = 100
 BATCH_SIZE = 128
 
+WEB_FILENAMES = ['5-speed-limit-80-km-h-cropped.png', '30-snow-cropped.png', '31-wild-animals-passing-cropped.png', '38-keep-right-cropped.png', '17-no-entry-cropped.png']
+
 
 def testing_pipeline():
     """Load test data and previously saved model, print statistics."""
@@ -50,6 +53,9 @@ def training_pipeline(mnist_test=True):
 
     # _print_training_data_basic_summary()
     # X_train, y_train, X_valid, y_valid = X_train[:10000], y_train[:10000], X_valid[:2000], y_valid[:2000]
+
+    own_images, own_labels = _load_web_images_first_time()
+    _visualize_data(own_images, own_labels)
 
     _print_training_data_basic_summary(X_train, y_train, X_valid, y_valid)
 
@@ -149,6 +155,28 @@ def _print_training_data_basic_summary(X_train, y_train, X_valid, y_valid):
     print("Number of classes =", n_classes)
 
 
+def _load_web_images_first_time():
+    images = np.array(list(map(lambda x: plt.imread(os.path.join('web-images', x)), WEB_FILENAMES)))
+    images = np.array(list(map(lambda x: cv2.resize(x, (32, 32)), images)))
+    images = np.array(list(map(lambda x: _convert_color_image(x), images)))
+    labels = list(map(lambda x: x.split("-")[0], WEB_FILENAMES))
+    return images, labels
+
+
+
+def _load_web_images_from_pickle(pickle_file):
+    return pickle.load(pickle_file)
+
+
+def _resize_images_to_32_x_32(images):
+    return list(map(_resize_image_to_32_x_32, images))
+
+
+def _resize_image_to_32_x_32(image):
+    """Resizes an image to 32 x 32 pixels."""
+    return cv2.resize(image, (32, 32))
+
+
 def _visualize_data(X_train, y_train):
     label_dict = {}
     with open('signnames.csv', 'r') as csvfile:
@@ -158,17 +186,28 @@ def _visualize_data(X_train, y_train):
 
     halfway = len(X_train) // 2
 
-    for i in range(1, 9):
-        plt.subplot(4,4,i)
-        plt.imshow(X_train[i - 1])
-        plt.axis('off')
-        plt.title("Ind {} - {}: {}".format(i - 1, y_train[i - 1], label_dict[str(y_train[i - 1])][:10]))
-    for i in range(1, 9):
-        plt.subplot(4,4,i + 8)
-        plt.imshow(X_train[halfway + i - 1])
-        plt.axis('off')
-        plt.title("Ind {} - {}: {}".format(halfway + i - 1, y_train[halfway + i - 1], label_dict[str(y_train[halfway + i - 1])][:10]))
-    plt.show()
+    if len(X_train) > 5:
+        for i in range(1, 9):
+            plt.subplot(4, 4 , i)
+            plt.imshow(X_train[i - 1])
+            plt.axis('off')
+            plt.title("Ind {} - {}: {}".format(i - 1, y_train[i - 1], label_dict[str(y_train[i - 1])][:10]))
+        for i in range(1, 9):
+            plt.subplot(4,4,i + 8)
+            plt.imshow(X_train[halfway + i - 1])
+            plt.axis('off')
+            plt.title("Ind {} - {}: {}".format(halfway + i - 1, y_train[halfway + i - 1], label_dict[str(y_train[halfway + i - 1])][:10]))
+        plt.show()
+    elif len(X_train) == 5:
+        for i in range(1, 6):
+            plt.subplot(2, 4, i)
+            plt.imshow(X_train[i - 1])
+            plt.axis('off')
+            plt.title("Ind {} - {}: {}".format(i - 1, y_train[i - 1], label_dict[str(y_train[i - 1])][:10]))
+        plt.show()
+    else:
+        raise Exception("Wrong image number specification!")
+
 
 
 def _preprocess_data(X_train, X_valid, y_train, y_valid):
@@ -193,7 +232,7 @@ def _preprocess_data(X_train, X_valid, y_train, y_valid):
     max_num_labels = max(num_labels.values())
 
     for label in num_labels.keys():
-        print("Label: {}".format(label))
+        # print("Label: {}".format(label))
         # Find all images with this label
         imgs = [img_label[0] for img_label in zip(X_train, y_train) if img_label[1] == label]
         coeff = max_num_labels / num_labels[label] - 1
