@@ -31,7 +31,8 @@ LEARNING_RATE = 0.0014
 EPOCHS = 100
 BATCH_SIZE = 128
 
-WEB_FILENAMES = ['5-speed-limit-80-km-h-cropped.png', '30-snow-cropped.png', '31-wild-animals-passing-cropped.png', '38-keep-right-cropped.png', '17-no-entry-cropped.png']
+WEB_FILENAMES_ORIGINAL = ['5-speed-limit-80-km-h-cropped.png', '30-snow-cropped.png', '31-wild-animals-passing-cropped.png', '38-keep-right-cropped.png', '17-no-entry-cropped.png']
+WEB_FILENAMES = ['5-speed-limit-80-km-h-cropped-3.png', '30-snow-cropped-3.png', '31-wild-animals-passing-cropped-3.png', '38-keep-right-cropped-3.png', '17-no-entry-cropped-3.png']
 
 
 def testing_pipeline():
@@ -40,74 +41,69 @@ def testing_pipeline():
     load_and_evaluate_model(X_test, y_test)
 
 
-def training_pipeline(mnist_test=True):
+def training_pipeline(train_features=None, train_labels=None, valid_features=None, valid_labels=None, mnist_test=False):
     """Load training data, define and train the model, then save to disk. """
     if mnist_test:
-        X_train, y_train, X_valid, y_valid = _load_test_data()
-    else:
-        train, valid, test = _load_previously_saved_data()
-        X_train, y_train = train['features'], train['labels']
-        X_valid, y_valid = valid['features'], valid['labels']
-        X_train, y_train = shuffle(X_train, y_train)
-        X_valid, y_valid = shuffle(X_valid, y_valid)
+        train_features, train_labels, valid_features, valid_labels = _load_test_data()
 
-    # _print_training_data_basic_summary()
-    # X_train, y_train, X_valid, y_valid = X_train[:10000], y_train[:10000], X_valid[:2000], y_valid[:2000]
 
-    own_images, own_labels = _load_web_images_first_time()
-    _visualize_data(own_images, own_labels)
+    # Visualize training data first without preprocessing
 
-    _print_training_data_basic_summary(X_train, y_train, X_valid, y_valid)
+    _visualize_data(train_features, train_labels)
+    # Load own downloaded data
+    # Preprocess own data
+
+    _print_training_data_basic_summary(train_features, train_labels, valid_features, valid_labels)
 
     if not mnist_test:
-        X_train, X_valid, y_train, y_valid = _preprocess_data(X_train, X_valid, y_train, y_valid)
-        _print_training_data_basic_summary(X_train, y_train, X_valid, y_valid)
-    _visualize_data(X_train, y_train)
-    X_train, y_train = shuffle(X_train, y_train)
+        train_features, train_labels, valid_features, valid_labels = _preprocess_train_test_data(train_features, train_labels, valid_features, valid_labels)
+        _print_training_data_basic_summary(train_features, train_labels, valid_features, valid_labels)
+    _visualize_data(train_features, train_labels, split=True)
+    train_features, train_labels = shuffle(train_features, train_labels)
     # print("Moving on")
 
     # Work with the actual model begins
     network = _define_model_architecture()
-    _train_network_and_save_params(network, X_train, y_train, X_valid, y_valid)
+    own_images, own_labels = load_and_preprocess_web_images(visualize=True)
+    _train_network_and_save_params(network, train_features, train_labels, valid_features, valid_labels, own_images, own_labels)
+    load_and_evaluate_model(own_images, own_labels)
 
 
 def _load_real_validation_data():
     train, valid, test = _load_previously_saved_data()
-    X_test, y_test = test['features'], test['labels']
-    X_test, y_test = shuffle(X_test, y_test)
-    return X_test, y_test
+    x_test, y_test = test['features'], test['labels']
+    x_test, y_test = shuffle(x_test, y_test)
+    return x_test, y_test
 
 
 def _load_test_validation_data():
     mnist = input_data.read_data_sets("MNIST_data/", reshape=False)
-    X_test, y_test = mnist.test.images, mnist.test.labels
-    X_test = np.pad(X_test, ((0, 0), (2, 2), (2, 2), (0, 0)), 'constant')
-    X_test, y_test = shuffle(X_test, y_test)
-    return X_test, y_test
-
+    x_test, y_test = mnist.test.images, mnist.test.labels
+    x_test = np.pad(x_test, ((0, 0), (2, 2), (2, 2), (0, 0)), 'constant')
+    x_test, y_test = shuffle(x_test, y_test)
+    return x_test, y_test
 
 
 def _augment_image_data(image):
     """FIXME get image data as input, return same structure but an augmented version."""
 
 
-
 def _load_test_data():
     """Loads the mnist character data. This is a short-term placeholder to get building something before getting the
     real data set prepared."""
     mnist = input_data.read_data_sets("MNIST_data/", reshape=False)
-    X_train, y_train = mnist.train.images, mnist.train.labels
-    X_validation, y_validation = mnist.validation.images, mnist.validation.labels
+    x_train, y_train = mnist.train.images, mnist.train.labels
+    x_validation, y_validation = mnist.validation.images, mnist.validation.labels
     # Pad images with 0s
-    X_train = np.pad(X_train, ((0, 0), (2, 2), (2, 2), (0, 0)), 'constant')
-    X_validation = np.pad(X_validation, ((0, 0), (2, 2), (2, 2), (0, 0)), 'constant')
+    x_train = np.pad(x_train, ((0, 0), (2, 2), (2, 2), (0, 0)), 'constant')
+    x_validation = np.pad(x_validation, ((0, 0), (2, 2), (2, 2), (0, 0)), 'constant')
 
     # Shuffle the data
-    X_train, y_train, = \
-        shuffle(X_train, y_train)
-    X_validation, y_validation = \
-        shuffle(X_validation, y_validation)
-    return X_train, y_train, X_validation, y_validation
+    x_train, y_train, = \
+        shuffle(x_train, y_train)
+    x_validation, y_validation = \
+        shuffle(x_validation, y_validation)
+    return x_train, y_train, x_validation, y_validation
 
 
 def _load_previously_saved_data():
@@ -133,18 +129,18 @@ def _print_test_data_basic_summary(X_test, y_test):
     pass
 
 
-def _print_training_data_basic_summary(X_train, y_train, X_valid, y_valid):
+def _print_training_data_basic_summary(x_train, y_train, X_valid, y_valid):
     # ### Replace each question mark with the appropriate value.
     # ### Use python, pandas or numpy methods rather than hard coding the results
 
     # return
     # # TODO: Number of training examples
-    n_train = len(X_train)
+    n_train = len(x_train)
     n_valid = len(X_valid)
 
 
     # # TODO: What's the shape of an traffic sign image?
-    shape = X_train[0].shape
+    shape = x_train[0].shape
     image_shape = "{} x {} x {}".format(shape[0], shape[1], shape[2])
 
     n_classes = len(set(y_train))
@@ -156,12 +152,11 @@ def _print_training_data_basic_summary(X_train, y_train, X_valid, y_valid):
 
 
 def _load_web_images_first_time():
-    images = np.array(list(map(lambda x: plt.imread(os.path.join('web-images', x)), WEB_FILENAMES)))
-    images = np.array(list(map(lambda x: cv2.resize(x, (32, 32)), images)))
-    images = np.array(list(map(lambda x: _convert_color_image(x), images)))
+    # Loads the images in BRG mode.
+    images = np.array(list(map(lambda x: cv2.imread(os.path.join('web-images', x)), WEB_FILENAMES)))
+    images = np.array(list(map(lambda x: cv2.cvtColor(x, cv2.COLOR_BGR2RGB), images)))
     labels = list(map(lambda x: x.split("-")[0], WEB_FILENAMES))
     return images, labels
-
 
 
 def _load_web_images_from_pickle(pickle_file):
@@ -177,7 +172,7 @@ def _resize_image_to_32_x_32(image):
     return cv2.resize(image, (32, 32))
 
 
-def _visualize_data(X_train, y_train):
+def _visualize_data(X_train, y_train, split=False):
     label_dict = {}
     with open('signnames.csv', 'r') as csvfile:
         datareader = csv.DictReader(csvfile)
@@ -186,7 +181,7 @@ def _visualize_data(X_train, y_train):
 
     halfway = len(X_train) // 2
 
-    if len(X_train) > 5:
+    if split:
         for i in range(1, 9):
             plt.subplot(4, 4 , i)
             plt.imshow(X_train[i - 1])
@@ -197,6 +192,15 @@ def _visualize_data(X_train, y_train):
             plt.imshow(X_train[halfway + i - 1])
             plt.axis('off')
             plt.title("Ind {} - {}: {}".format(halfway + i - 1, y_train[halfway + i - 1], label_dict[str(y_train[halfway + i - 1])][:10]))
+        plt.show()
+    elif len(X_train) > 5:
+        # Plot the 12 first images
+        for i in range(1, 9):
+            plt.subplot(4, 3 , i)
+            if len(X_train) > i + 1:
+                plt.imshow(X_train[i - 1])
+                plt.axis('off')
+                plt.title("Ind {} - {}: {}".format(i - 1, y_train[i - 1], label_dict[str(y_train[i - 1])][:10]))
         plt.show()
     elif len(X_train) == 5:
         for i in range(1, 6):
@@ -209,15 +213,8 @@ def _visualize_data(X_train, y_train):
         raise Exception("Wrong image number specification!")
 
 
-
-def _preprocess_data(X_train, X_valid, y_train, y_valid):
-    """Todo: Initial steps towards some grayscaling etc. Remember, at this point the images have already been shuffled."""
-
-    # TODO: find out ways to preprocess the data in meaningful ways.
-    normalized_train = []
-    normalized_valid = []
-    train_labels = y_train
-    valid_labels = y_valid
+def _preprocess_data(features, labels, multiply_much=False):
+    normalized_features = []
 
     # halfway_train = len(X_train) // 2
     # train_1st_half_copy = X_train[:halfway_train]
@@ -228,13 +225,69 @@ def _preprocess_data(X_train, X_valid, y_train, y_valid):
 
     # Find the number of occurrences of each of the labels in the training data:
 
-    num_labels = {ind: list(y_train).count(ind) for ind in set(y_train)}
+    num_labels = {ind: list(labels).count(ind) for ind in set(labels)}
     max_num_labels = max(num_labels.values())
 
     for label in num_labels.keys():
         # print("Label: {}".format(label))
         # Find all images with this label
-        imgs = [img_label[0] for img_label in zip(X_train, y_train) if img_label[1] == label]
+        imgs = [img_label[0] for img_label in zip(features, labels) if img_label[1] == label]
+        coeff = max_num_labels / num_labels[label] - 1
+        coeff_int = int(np.floor(coeff))
+        original_length = len(imgs)
+        mult_coeff = 10 if multiply_much else 1
+        if coeff_int > 1:
+            imgs_repeated = [img for img in imgs for _ in range(mult_coeff * coeff_int)]
+        else:
+            imgs_repeated = imgs[:]
+        max_ind = int((coeff - coeff_int) * original_length)
+        if max_ind > 0:
+            imgs = np.concatenate((imgs_repeated, imgs[:max_ind]))
+        else:
+            imgs = imgs_repeated
+
+        rotation_angles = [18 * (random() - 0.5) for _ in range(len(imgs))]
+        scale_coeffs = [1 + 0.2 * (random() - 0.2) for _ in range(len(imgs))]
+
+        for ind, img in enumerate(imgs):
+            matr = cv2.getRotationMatrix2D((16, 16), rotation_angles[ind], scale_coeffs[ind])
+            imgs[ind] = cv2.warpAffine(img, matr, (32, 32))
+
+        features = np.concatenate([features, imgs])
+        labels = np.concatenate([labels, np.tile(label, len(imgs))])
+
+    # Normalize contrast as per http://stackoverflow.com/a/38312281
+    for img in features:
+        normalized_features.append(_convert_color_image(img))
+
+    return normalized_features, labels
+
+
+def _preprocess_train_test_data(train_features, train_labels, valid_features, valid_labels):
+    """Todo: Initial steps towards some grayscaling etc. Remember, at this point the images have already been shuffled."""
+
+    # TODO: find out ways to preprocess the data in meaningful ways.
+    normalized_train = []
+    normalized_valid = []
+    train_labels = train_labels
+    valid_labels = valid_labels
+
+    # halfway_train = len(X_train) // 2
+    # train_1st_half_copy = X_train[:halfway_train]
+    # train_2st_half_copy = X_train[halfway_train:]
+
+    # labels_train_1st_half = y_train[:halfway_train]
+    # labels_train_2st_half = y_train[halfway_train:]
+
+    # Find the number of occurrences of each of the labels in the training data:
+
+    num_labels = {ind: list(train_labels).count(ind) for ind in set(train_labels)}
+    max_num_labels = max(num_labels.values())
+
+    for label in num_labels.keys():
+        # print("Label: {}".format(label))
+        # Find all images with this label
+        imgs = [img_label[0] for img_label in zip(train_features, train_labels) if img_label[1] == label]
         coeff = max_num_labels / num_labels[label] - 1
         coeff_int = int(np.floor(coeff))
         original_length = len(imgs)
@@ -255,25 +308,27 @@ def _preprocess_data(X_train, X_valid, y_train, y_valid):
             matr = cv2.getRotationMatrix2D((16, 16), rotation_angles[ind], scale_coeffs[ind])
             imgs[ind] = cv2.warpAffine(img, matr, (32, 32))
 
-        X_train = np.concatenate([X_train, imgs])
-        y_train = np.concatenate([y_train, np.tile(label, len(imgs))])
-
+        train_features = np.concatenate([train_features, imgs])
+        train_labels = np.concatenate([train_labels, np.tile(label, len(imgs))])
 
     # Add a slightly scaled version of the other half of the images, with a little bit of added noise.
 
-    # Normalize contrast as per http://stackoverflow.com/a/38312281
-
-    for img in X_train:
+    for img in train_features:
         normalized_train.append(_convert_color_image(img))
-    for img in X_valid:
+    for img in valid_features:
         normalized_valid.append(_convert_color_image(img))
 
-    return normalized_train, normalized_valid, y_train, y_valid
+    return normalized_train, train_labels, normalized_valid, valid_labels
+
 
 def _convert_color_image(img):
+    """Normalize contrast as per http://stackoverflow.com/a/38312281 """
     img_yuv = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
 
     # equalize the histogram of the Y channel
+    channel = img_yuv[:, :, 0]
+    # plt.imshow(channel)
+    # plt.show()
     img_yuv[:, :, 0] = cv2.equalizeHist(img_yuv[:, :, 0])
 
     # convert the YUV image back to RGB format
@@ -412,7 +467,7 @@ def _define_model_architecture():
     return network_topology
 
 
-def _train_network_and_save_params(network, X_train, y_train, X_valid, y_valid):
+def _train_network_and_save_params(network, X_train, y_train, X_valid, y_valid, own_features, own_labels):
     """DRAFT: Train the network and print statistics. Also saves the model."""
 
     with tf.Session() as sess:
@@ -440,11 +495,14 @@ def _train_network_and_save_params(network, X_train, y_train, X_valid, y_valid):
             print("{}: EPOCH {} ...".format(datetime.now(), i + 1))
             print("Validation Accuracy = {:.6f}".format(validation_accuracy))
 
+            validation_accuracy_own_data = _evaluate(own_features, own_labels, batch_size, accuracy_operation, x, y)
+            print("Validation Accuracy using own data = {:.6f}".format(validation_accuracy_own_data))
+
         name = tf.train.Saver().save(sess, './lenet.ckpt')
         print("Model saved, model name: {}".format(name))
 
 
-def load_and_evaluate_model(X_test, y_test):
+def load_and_evaluate_model(features, labels, data_set_type="test"):
     """DRAFT: Load a model into a session again."""
     # some_weights = tf.Variable(tf.truncated_normal([5, 5, 1, 6], 0, 0.001))
     network = _define_model_architecture()
@@ -453,8 +511,8 @@ def load_and_evaluate_model(X_test, y_test):
         sess.run(tf.global_variables_initializer())
         restorer = tf.train.Saver()
         restorer.restore(sess, './lenet.ckpt')
-        test_accuracy = _evaluate(X_test, y_test, network['batch_size'], network['accuracy_operation'], network['x'], network['y'])
-        print("Test Accuracy = {:.3f}".format(test_accuracy))
+        test_accuracy = _evaluate(features, labels, network['batch_size'], network['accuracy_operation'], network['x'], network['y'])
+        print("{} accuracy = {:.3f}".format(data_set_type, test_accuracy))
 
 
 # TODO: the rest is just copy-paste from the initial workbook
@@ -489,6 +547,36 @@ def _outputFeatureMap(image_input, tf_activation, activation_min=-1, activation_
             plt.imshow(activation[0,:,:, featuremap], interpolation="nearest", cmap="gray")
 
 
+def load_and_preprocess_web_images(visualize=False):
+    own_images, own_labels = _load_web_images_first_time()
+    # Visualize first without preprocessing
+    if visualize:
+        _visualize_data(own_images, own_labels)
+    # Resize
+    own_images = np.array(list(map(lambda x: cv2.resize(x, (32, 32)), own_images)))
+    if visualize:
+        _visualize_data(own_images, own_labels)
+    own_images, own_labels = _preprocess_data(own_images, own_labels, multiply_much=True)
+    if visualize:
+        _visualize_data(own_images, own_labels)
+    return own_images, own_labels
+
+
+    return features, labels
+
+
+def load_and_evaluate_own_images(visualize=False):
+    features, labels = load_and_preprocess_web_images(visualize=visualize)
+    load_and_evaluate_model(features, labels, "own images")
+
+
 if __name__ == "__main__":
-    training_pipeline(mnist_test=False)
+    train, valid, test = _load_previously_saved_data()
+    train_features, train_labels = train['features'], train['labels']
+    valid_features, valid_labels = valid['features'], valid['labels']
+    train_features, train_labels = shuffle(train_features, train_labels)
+    valid_features, valid_labels = shuffle(valid_features, valid_labels)
+    training_pipeline(train_features, train_labels, valid_features, valid_labels)
+    # load_and_evaluate_own_images(visualize=True)
+    train, valid, test = _load_previously_saved_data()
     # testing_pipeline()
