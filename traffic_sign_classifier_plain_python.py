@@ -28,45 +28,60 @@ LABEL_FILE = 'signnames.csv'
 
 
 LEARNING_RATE = 0.0014
-EPOCHS = 100
+EPOCHS = 5
 BATCH_SIZE = 128
 
 WEB_FILENAMES_ORIGINAL = ['5-speed-limit-80-km-h-cropped.png', '30-snow-cropped.png', '31-wild-animals-passing-cropped.png', '38-keep-right-cropped.png', '17-no-entry-cropped.png']
-WEB_FILENAMES = ['5-speed-limit-80-km-h-cropped-3.png', '30-snow-cropped-3.png', '31-wild-animals-passing-cropped-3.png', '38-keep-right-cropped-3.png', '17-no-entry-cropped-3.png']
+WEB_FILENAMES = ['5-speed-limit-80-km-h-cropped-3.png', '30-snow-cropped-3.png',
+                 '31-wild-animals-passing-cropped-3.png', '38-keep-right-cropped-3.png',
+                 '17-no-entry-cropped-3.png']
 
 
 def testing_pipeline():
     """Load test data and previously saved model, print statistics."""
-    X_test, y_test = _load_real_validation_data()
-    load_and_evaluate_model(X_test, y_test)
+    test_features, test_labels = _load_real_validation_data()
+
+    print("Numer of examples in test set:", len(test_features))
+
+    # TODO: remove?
+    # normalized_features = []
+    # for img in test_features:
+    #     normalized_features.append(_convert_color_image(img))
+
+    test_features = np.array(list(map(_convert_color_image, test_features)))
+    load_and_evaluate_model(test_features, test_labels)
 
 
-def training_pipeline(train_features=None, train_labels=None, valid_features=None, valid_labels=None, mnist_test=False):
+def training_pipeline(mnist_test=False):
     """Load training data, define and train the model, then save to disk. """
     if mnist_test:
         train_features, train_labels, valid_features, valid_labels = _load_test_data()
+    else:
+        train, valid, test = _load_previously_saved_data()
+        train_features, train_labels = train['features'], train['labels']
+        valid_features, valid_labels = valid['features'], valid['labels']
+        train_features, train_labels = shuffle(train_features, train_labels)
+        valid_features, valid_labels = shuffle(valid_features, valid_labels)
 
 
     # Visualize training data first without preprocessing
-
     _visualize_data(train_features, train_labels)
-    # Load own downloaded data
-    # Preprocess own data
-
-    _print_training_data_basic_summary(train_features, train_labels, valid_features, valid_labels)
 
     if not mnist_test:
-        train_features, train_labels, valid_features, valid_labels = _preprocess_train_test_data(train_features, train_labels, valid_features, valid_labels)
+        train_features, train_labels, valid_features, valid_labels = _preprocess_train_test_data(
+            train_features, train_labels, valid_features, valid_labels)
         _print_training_data_basic_summary(train_features, train_labels, valid_features, valid_labels)
     _visualize_data(train_features, train_labels, split=True)
     train_features, train_labels = shuffle(train_features, train_labels)
-    # print("Moving on")
 
     # Work with the actual model begins
     network = _define_model_architecture()
+
+    # Use web images also
     own_images, own_labels = load_and_preprocess_web_images(visualize=True)
-    _train_network_and_save_params(network, train_features, train_labels, valid_features, valid_labels, own_images, own_labels)
-    load_and_evaluate_model(own_images, own_labels)
+    _train_network_and_save_params(network, train_features, train_labels, valid_features, valid_labels,
+                                   own_images, own_labels)
+    # load_and_evaluate_model(own_images, own_labels)
 
 
 def _load_real_validation_data():
@@ -134,12 +149,12 @@ def _print_training_data_basic_summary(x_train, y_train, X_valid, y_valid):
     # ### Use python, pandas or numpy methods rather than hard coding the results
 
     # return
-    # # TODO: Number of training examples
+    # Number of training examples
     n_train = len(x_train)
     n_valid = len(X_valid)
 
 
-    # # TODO: What's the shape of an traffic sign image?
+    # Shape of an traffic sign image?
     shape = x_train[0].shape
     image_shape = "{} x {} x {}".format(shape[0], shape[1], shape[2])
 
@@ -467,12 +482,12 @@ def _define_model_architecture():
     return network_topology
 
 
-def _train_network_and_save_params(network, X_train, y_train, X_valid, y_valid, own_features, own_labels):
+def _train_network_and_save_params(network, train_features, train_labels, valid_features, valid_labels, own_features, own_labels):
     """DRAFT: Train the network and print statistics. Also saves the model."""
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        num_examples = len(X_train)
+        num_examples = len(train_features)
 
         # Assigning to local variables for easier lookup
         batch_size = network['batch_size']
@@ -485,13 +500,13 @@ def _train_network_and_save_params(network, X_train, y_train, X_valid, y_valid, 
         print("Training...")
         print()
         for i in range(epochs):
-            X_train, y_train = shuffle(X_train, y_train)
+            train_features, train_labels = shuffle(train_features, train_labels)
             for offset in range(0, num_examples, batch_size):
                 end = offset + batch_size
-                batch_x, batch_y = X_train[offset:end], y_train[offset:end]
+                batch_x, batch_y = train_features[offset:end], train_labels[offset:end]
                 sess.run(training_operation, feed_dict={x: batch_x, y: batch_y})
 
-            validation_accuracy = _evaluate(X_valid, y_valid, batch_size, accuracy_operation, x, y)
+            validation_accuracy = _evaluate(valid_features, valid_labels, batch_size, accuracy_operation, x, y)
             print("{}: EPOCH {} ...".format(datetime.now(), i + 1))
             print("Validation Accuracy = {:.6f}".format(validation_accuracy))
 
@@ -561,7 +576,6 @@ def load_and_preprocess_web_images(visualize=False):
         _visualize_data(own_images, own_labels)
     return own_images, own_labels
 
-
     return features, labels
 
 
@@ -571,12 +585,6 @@ def load_and_evaluate_own_images(visualize=False):
 
 
 if __name__ == "__main__":
-    train, valid, test = _load_previously_saved_data()
-    train_features, train_labels = train['features'], train['labels']
-    valid_features, valid_labels = valid['features'], valid['labels']
-    train_features, train_labels = shuffle(train_features, train_labels)
-    valid_features, valid_labels = shuffle(valid_features, valid_labels)
-    training_pipeline(train_features, train_labels, valid_features, valid_labels)
-    # load_and_evaluate_own_images(visualize=True)
-    train, valid, test = _load_previously_saved_data()
+
+    training_pipeline()
     # testing_pipeline()
