@@ -28,7 +28,7 @@ LABEL_FILE = 'signnames.csv'
 
 
 LEARNING_RATE = 0.0014
-EPOCHS = 5
+EPOCHS = 10
 BATCH_SIZE = 128
 
 WEB_FILENAMES_ORIGINAL = ['5-speed-limit-80-km-h-cropped.png', '30-snow-cropped.png', '31-wild-animals-passing-cropped.png', '38-keep-right-cropped.png', '17-no-entry-cropped.png']
@@ -41,7 +41,7 @@ def testing_pipeline():
     """Load test data and previously saved model, print statistics."""
     test_features, test_labels = _load_real_validation_data()
 
-    print("Numer of examples in test set:", len(test_features))
+    print("Number of examples in test set:", len(test_features))
 
     # TODO: remove?
     # normalized_features = []
@@ -52,7 +52,13 @@ def testing_pipeline():
     load_and_evaluate_model(test_features, test_labels)
 
 
-def training_pipeline(mnist_test=False):
+def testing_pipeline_web(visualize=True):
+    features, labels, orig_label_stats, preprocessed_label_stats = load_and_preprocess_web_images(visualize=visualize)
+    _print_test_data_basic_summary(features, labels, orig_label_stats, preprocessed_label_stats)
+    load_and_evaluate_model(features, labels, "web")
+
+
+def training_pipeline(visualize=True, mnist_test=False):
     """Load training data, define and train the model, then save to disk. """
     if mnist_test:
         train_features, train_labels, valid_features, valid_labels = _load_test_data()
@@ -64,24 +70,32 @@ def training_pipeline(mnist_test=False):
         valid_features, valid_labels = shuffle(valid_features, valid_labels)
 
 
-    # Visualize training data first without preprocessing
-    _visualize_data(train_features, train_labels)
+    if visualize:
+        # Visualize training data first without preprocessing
+        _visualize_data(train_features, train_labels)
 
     if not mnist_test:
-        train_features, train_labels, valid_features, valid_labels = _preprocess_train_test_data(
+        train_features, train_labels, valid_features, \
+        valid_labels, orig_label_stats_train, preprocessed_label_stats_train, \
+        orig_label_stats_valid, preprocessed_label_stats_valid = _preprocess_train_test_data(
             train_features, train_labels, valid_features, valid_labels)
-        _print_training_data_basic_summary(train_features, train_labels, valid_features, valid_labels)
-    _visualize_data(train_features, train_labels, split=True)
+        _print_test_data_basic_summary(train_features, train_labels, orig_label_stats_train, preprocessed_label_stats_train)
+        _print_test_data_basic_summary(valid_features, valid_labels, orig_label_stats_valid, preprocessed_label_stats_valid)
+
+    if visualize:
+        # Now visualize after preprocessing
+        _visualize_data(train_features, train_labels, split=True)
+
     train_features, train_labels = shuffle(train_features, train_labels)
 
     # Work with the actual model begins
     network = _define_model_architecture()
 
     # Use web images also
-    own_images, own_labels = load_and_preprocess_web_images(visualize=True)
+    own_images, own_labels, orig_label_stats, preprocessed_label_stats = load_and_preprocess_web_images(visualize=True)
+    _print_test_data_basic_summary(own_images, own_labels, orig_label_stats, preprocessed_label_stats)
     _train_network_and_save_params(network, train_features, train_labels, valid_features, valid_labels,
                                    own_images, own_labels)
-    # load_and_evaluate_model(own_images, own_labels)
 
 
 def _load_real_validation_data():
@@ -139,26 +153,29 @@ def _load_data_file(path):
         return pickle.load(f)
 
 
-def _print_test_data_basic_summary(X_test, y_test):
-    """Todo: write this for test data set."""
-    pass
+def _print_test_data_basic_summary(features, labels, orig_label_stats, preprocessed_label_stats):
+    assert len(features) == len(labels)
+    print("Number or examples: {}".format(len(features)))
+    print("Original label stats: {}".format(orig_label_stats))
+    print("Maximum number of examples in a class: {}".format(max(orig_label_stats.values())))
+    print("Label stats after preprocessing: {}".format(preprocessed_label_stats))
 
 
-def _print_training_data_basic_summary(x_train, y_train, X_valid, y_valid):
+def _print_training_data_basic_summary(train_features, train_labels, valid_features, valid_labels):
     # ### Replace each question mark with the appropriate value.
     # ### Use python, pandas or numpy methods rather than hard coding the results
 
     # return
     # Number of training examples
-    n_train = len(x_train)
-    n_valid = len(X_valid)
+    n_train = len(train_features)
+    n_valid = len(valid_features)
 
 
     # Shape of an traffic sign image?
-    shape = x_train[0].shape
+    shape = train_features[0].shape
     image_shape = "{} x {} x {}".format(shape[0], shape[1], shape[2])
 
-    n_classes = len(set(y_train))
+    n_classes = len(set(train_labels))
 
     print("Number of training examples =", n_train)
     print("Number of validation examples =", n_valid)
@@ -187,49 +204,49 @@ def _resize_image_to_32_x_32(image):
     return cv2.resize(image, (32, 32))
 
 
-def _visualize_data(X_train, y_train, split=False):
+def _visualize_data(features, labels, split=False):
     label_dict = {}
     with open('signnames.csv', 'r') as csvfile:
         datareader = csv.DictReader(csvfile)
         for row in datareader:
             label_dict[row['ClassId']] = row['SignName']
 
-    halfway = len(X_train) // 2
+    halfway = len(features) // 2
 
     if split:
         for i in range(1, 9):
             plt.subplot(4, 4 , i)
-            plt.imshow(X_train[i - 1])
+            plt.imshow(features[i - 1])
             plt.axis('off')
-            plt.title("Ind {} - {}: {}".format(i - 1, y_train[i - 1], label_dict[str(y_train[i - 1])][:10]))
+            plt.title("Ind {} - {}: {}".format(i - 1, labels[i - 1], label_dict[str(labels[i - 1])][:10]))
         for i in range(1, 9):
             plt.subplot(4,4,i + 8)
-            plt.imshow(X_train[halfway + i - 1])
+            plt.imshow(features[halfway + i - 1])
             plt.axis('off')
-            plt.title("Ind {} - {}: {}".format(halfway + i - 1, y_train[halfway + i - 1], label_dict[str(y_train[halfway + i - 1])][:10]))
+            plt.title("Ind {} - {}: {}".format(halfway + i - 1, labels[halfway + i - 1], label_dict[str(labels[halfway + i - 1])][:10]))
         plt.show()
-    elif len(X_train) > 5:
+    elif len(features) > 5:
         # Plot the 12 first images
         for i in range(1, 9):
-            plt.subplot(4, 3 , i)
-            if len(X_train) > i + 1:
-                plt.imshow(X_train[i - 1])
+            plt.subplot(4, 3, i)
+            if len(features) > i + 1:
+                plt.imshow(features[i - 1])
                 plt.axis('off')
-                plt.title("Ind {} - {}: {}".format(i - 1, y_train[i - 1], label_dict[str(y_train[i - 1])][:10]))
+                plt.title("Ind {} - {}: {}".format(i - 1, labels[i - 1], label_dict[str(labels[i - 1])][:10]))
         plt.show()
-    elif len(X_train) == 5:
+    elif len(features) == 5:
         for i in range(1, 6):
             plt.subplot(2, 4, i)
-            plt.imshow(X_train[i - 1])
+            plt.imshow(features[i - 1])
             plt.axis('off')
-            plt.title("Ind {} - {}: {}".format(i - 1, y_train[i - 1], label_dict[str(y_train[i - 1])][:10]))
+            plt.title("Ind {} - {}: {}".format(i - 1, labels[i - 1], label_dict[str(labels[i - 1])][:10]))
         plt.show()
     else:
         raise Exception("Wrong image number specification!")
 
 
-def _preprocess_data(features, labels, multiply_much=False):
-    normalized_features = []
+def _preprocess_data(features, labels):
+    normalized_features = np.array([])
 
     # halfway_train = len(X_train) // 2
     # train_1st_half_copy = X_train[:halfway_train]
@@ -240,42 +257,45 @@ def _preprocess_data(features, labels, multiply_much=False):
 
     # Find the number of occurrences of each of the labels in the training data:
 
-    num_labels = {ind: list(labels).count(ind) for ind in set(labels)}
-    max_num_labels = max(num_labels.values())
+    orig_label_stats = {ind: list(labels).count(ind) for ind in set(labels)}
+    max_num_labels = max(orig_label_stats.values())
 
-    for label in num_labels.keys():
-        # print("Label: {}".format(label))
+    for label, num in orig_label_stats.items():
         # Find all images with this label
-        imgs = [img_label[0] for img_label in zip(features, labels) if img_label[1] == label]
-        coeff = max_num_labels / num_labels[label] - 1
+        imgs = np.array([img_label[0] for img_label in zip(features, labels) if img_label[1] == label])
+        coeff = max_num_labels / orig_label_stats[label] - 1
         coeff_int = int(np.floor(coeff))
         original_length = len(imgs)
-        mult_coeff = 10 if multiply_much else 1
         if coeff_int > 1:
-            imgs_repeated = [img for img in imgs for _ in range(mult_coeff * coeff_int)]
+            imgs_repeated = [img for img in imgs for _ in range(coeff_int)]
         else:
-            imgs_repeated = imgs[:]
+            imgs_repeated = np.array([])
         max_ind = int((coeff - coeff_int) * original_length)
         if max_ind > 0:
-            imgs = np.concatenate((imgs_repeated, imgs[:max_ind]))
-        else:
-            imgs = imgs_repeated
+            if len(imgs_repeated) > 0:
+                imgs_repeated = np.concatenate((imgs_repeated, imgs[:max_ind]))
+            else:
+                imgs_repeated = imgs[:max_ind]
 
-        rotation_angles = [18 * (random() - 0.5) for _ in range(len(imgs))]
-        scale_coeffs = [1 + 0.2 * (random() - 0.2) for _ in range(len(imgs))]
+        rotation_angles = [18 * (random() - 0.5) for _ in range(len(imgs_repeated))]
+        scale_coeffs = [1 + 0.2 * (random() - 0.2) for _ in range(len(imgs_repeated))]
 
-        for ind, img in enumerate(imgs):
+        for ind, img in enumerate(imgs_repeated):
             matr = cv2.getRotationMatrix2D((16, 16), rotation_angles[ind], scale_coeffs[ind])
-            imgs[ind] = cv2.warpAffine(img, matr, (32, 32))
+            imgs_repeated[ind] = cv2.warpAffine(img, matr, (32, 32))
 
-        features = np.concatenate([features, imgs])
-        labels = np.concatenate([labels, np.tile(label, len(imgs))])
+        if len(imgs_repeated) > 0:
+            new_labels = np.tile(label, len(imgs_repeated))
+            normalized_features = np.concatenate((normalized_features, imgs_repeated))
+            labels = np.concatenate((labels, new_labels))
+            assert len(normalized_features) == len(labels)
 
-    # Normalize contrast as per http://stackoverflow.com/a/38312281
-    for img in features:
-        normalized_features.append(_convert_color_image(img))
+    preprocessed_label_stats = {ind: list(labels).count(ind) for ind in set(labels)}
+    if len(normalized_features) > 0:
+        features = np.concatenate((features, normalized_features))
+        features = np.array(list(map(_convert_color_image, features)))
 
-    return normalized_features, labels
+    return features, labels, orig_label_stats , preprocessed_label_stats
 
 
 def _preprocess_train_test_data(train_features, train_labels, valid_features, valid_labels):
@@ -284,8 +304,6 @@ def _preprocess_train_test_data(train_features, train_labels, valid_features, va
     # TODO: find out ways to preprocess the data in meaningful ways.
     normalized_train = []
     normalized_valid = []
-    train_labels = train_labels
-    valid_labels = valid_labels
 
     # halfway_train = len(X_train) // 2
     # train_1st_half_copy = X_train[:halfway_train]
@@ -296,35 +314,38 @@ def _preprocess_train_test_data(train_features, train_labels, valid_features, va
 
     # Find the number of occurrences of each of the labels in the training data:
 
-    num_labels = {ind: list(train_labels).count(ind) for ind in set(train_labels)}
-    max_num_labels = max(num_labels.values())
+    orig_label_stats_train = {ind: list(train_labels).count(ind) for ind in set(train_labels)}
+    orig_label_stats_valid = {ind: list(valid_labels).count(ind) for ind in set(valid_labels)}
+    max_num_labels = max(orig_label_stats_train.values())
 
-    for label in num_labels.keys():
-        # print("Label: {}".format(label))
+    for label, num in orig_label_stats_train.items():
         # Find all images with this label
         imgs = [img_label[0] for img_label in zip(train_features, train_labels) if img_label[1] == label]
-        coeff = max_num_labels / num_labels[label] - 1
+
+        coeff = max_num_labels / orig_label_stats_train[label] - 1
         coeff_int = int(np.floor(coeff))
         original_length = len(imgs)
         if coeff_int > 1:
-            imgs_repeated = [img for img in imgs for _ in range(coeff_int)]
+            imgs_repeated = np.array([img for img in imgs for _ in range(coeff_int)])
         else:
-            imgs_repeated = imgs[:]
+            imgs_repeated = np.array([])
         max_ind = int((coeff - coeff_int) * original_length)
         if max_ind > 0:
-            imgs = np.concatenate((imgs_repeated, imgs[:max_ind]))
-        else:
-            imgs = imgs_repeated
+            if len(imgs_repeated) > 0:
+                imgs_repeated = np.concatenate((imgs_repeated, imgs[:max_ind]))
+            else:
+                imgs_repeated = np.array(imgs[:max_ind])
 
-        rotation_angles = [24 * (random() - 0.5) for _ in range(len(imgs))]
-        scale_coeffs = [1 + 0.5 * (random() - 0.5) for _ in range(len(imgs))]
+        rotation_angles = [24 * (random() - 0.5) for _ in range(len(imgs_repeated))]
+        scale_coeffs = [1 + 0.5 * (random() - 0.5) for _ in range(len(imgs_repeated))]
 
-        for ind, img in enumerate(imgs):
+        for ind, img in enumerate(imgs_repeated):
             matr = cv2.getRotationMatrix2D((16, 16), rotation_angles[ind], scale_coeffs[ind])
-            imgs[ind] = cv2.warpAffine(img, matr, (32, 32))
+            imgs_repeated[ind] = cv2.warpAffine(img, matr, (32, 32))
 
-        train_features = np.concatenate([train_features, imgs])
-        train_labels = np.concatenate([train_labels, np.tile(label, len(imgs))])
+        if len(imgs_repeated) > 0:
+            train_features = np.concatenate((train_features, imgs_repeated))
+            train_labels = np.concatenate([train_labels, np.tile(label, len(imgs_repeated))])
 
     # Add a slightly scaled version of the other half of the images, with a little bit of added noise.
 
@@ -333,7 +354,10 @@ def _preprocess_train_test_data(train_features, train_labels, valid_features, va
     for img in valid_features:
         normalized_valid.append(_convert_color_image(img))
 
-    return normalized_train, train_labels, normalized_valid, valid_labels
+    preprocessed_label_stats_train = {ind: list(train_labels).count(ind) for ind in set(train_labels)}
+    preprocessed_label_stats_valid = {ind: list(valid_labels).count(ind) for ind in set(valid_labels)}
+    return normalized_train, train_labels, normalized_valid, valid_labels, orig_label_stats_train, \
+           preprocessed_label_stats_train, orig_label_stats_valid, preprocessed_label_stats_valid
 
 
 def _convert_color_image(img):
@@ -523,11 +547,11 @@ def load_and_evaluate_model(features, labels, data_set_type="test"):
     network = _define_model_architecture()
 
     with tf.Session() as sess:
-        sess.run(tf.global_variables_initializer())
+        # sess.run(tf.global_variables_initializer())
         restorer = tf.train.Saver()
         restorer.restore(sess, './lenet.ckpt')
         test_accuracy = _evaluate(features, labels, network['batch_size'], network['accuracy_operation'], network['x'], network['y'])
-        print("{} accuracy = {:.3f}".format(data_set_type, test_accuracy))
+        print("{} set accuracy = {:.3f}".format(data_set_type, test_accuracy))
 
 
 # TODO: the rest is just copy-paste from the initial workbook
@@ -563,28 +587,33 @@ def _outputFeatureMap(image_input, tf_activation, activation_min=-1, activation_
 
 
 def load_and_preprocess_web_images(visualize=False):
-    own_images, own_labels = _load_web_images_first_time()
+    features, labels = _load_web_images_first_time()
+    assert len(features) == len(labels)
     # Visualize first without preprocessing
     if visualize:
-        _visualize_data(own_images, own_labels)
+        _visualize_data(features, labels)
     # Resize
-    own_images = np.array(list(map(lambda x: cv2.resize(x, (32, 32)), own_images)))
+    features = np.array(list(map(lambda x: cv2.resize(x, (32, 32)), features)))
     if visualize:
-        _visualize_data(own_images, own_labels)
-    own_images, own_labels = _preprocess_data(own_images, own_labels, multiply_much=True)
-    if visualize:
-        _visualize_data(own_images, own_labels)
-    return own_images, own_labels
+        _visualize_data(features, labels)
 
-    return features, labels
+    original_label_statas = {ind: list(labels).count(ind) for ind in set(labels)}
+    features, labels, orig_label_stats, processed_label_stats = _preprocess_data(features, labels)
+    assert len(features) == len(labels)
+    preprocessed_label_stats = {ind: list(labels).count(ind) for ind in set(labels)}
+    if visualize:
+        _visualize_data(features, labels)
+
+    return features, labels, original_label_statas, preprocessed_label_stats
 
 
 def load_and_evaluate_own_images(visualize=False):
-    features, labels = load_and_preprocess_web_images(visualize=visualize)
+    features, labels, orig_label_stats, preprocessed_label_stats = load_and_preprocess_web_images(visualize=visualize)
     load_and_evaluate_model(features, labels, "own images")
 
 
 if __name__ == "__main__":
 
-    training_pipeline()
+    training_pipeline(visualize=False)
     # testing_pipeline()
+    # testing_pipeline_web(visualize=False)
