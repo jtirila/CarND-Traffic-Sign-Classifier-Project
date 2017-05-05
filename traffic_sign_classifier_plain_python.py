@@ -6,7 +6,7 @@ from sklearn.utils import shuffle
 from tensorflow.contrib.layers import flatten
 from datetime import datetime
 import os
-import copy
+import re
 
 # These are for image transformations
 import cv2
@@ -21,6 +21,11 @@ import numpy as np
 
 # Some global variables
 
+FIRST_CONVO_WEIGHTS_NAME = 'first_convo_weights'
+FIRST_CONVO_WEIGHTS_PATTERN = re.compile(FIRST_CONVO_WEIGHTS_NAME + '.*')
+SECOND_CONVO_WEIGHTS_NAME = 'second_convo_weights'
+SECOND_CONVO_WEIGHTS_PATTERN = re.compile(SECOND_CONVO_WEIGHTS_NAME + '.*')
+
 TRAINING_FILE = '/home/jtirila/Data/german-traffic-signs/train.p'
 VALIDATION_FILE = '/home/jtirila/Data/german-traffic-signs/valid.p'
 TESTING_FILE = '/home/jtirila/Data/german-traffic-signs/test.p'
@@ -28,7 +33,7 @@ LABEL_FILE = 'signnames.csv'
 
 
 LEARNING_RATE = 0.0014
-EPOCHS = 10
+EPOCHS = 100
 BATCH_SIZE = 128
 
 WEB_FILENAMES_ORIGINAL = ['5-speed-limit-80-km-h-cropped.png', '30-snow-cropped.png', '31-wild-animals-passing-cropped.png', '38-keep-right-cropped.png', '17-no-entry-cropped.png']
@@ -69,7 +74,6 @@ def training_pipeline(visualize=True, mnist_test=False):
         train_features, train_labels = shuffle(train_features, train_labels)
         valid_features, valid_labels = shuffle(valid_features, valid_labels)
 
-
     if visualize:
         # Visualize training data first without preprocessing
         _visualize_data(train_features, train_labels)
@@ -92,7 +96,7 @@ def training_pipeline(visualize=True, mnist_test=False):
     network = _define_model_architecture()
 
     # Use web images also
-    own_images, own_labels, orig_label_stats, preprocessed_label_stats = load_and_preprocess_web_images(visualize=True)
+    own_images, own_labels, orig_label_stats, preprocessed_label_stats = load_and_preprocess_web_images(visualize=visualize)
     _print_test_data_basic_summary(own_images, own_labels, orig_label_stats, preprocessed_label_stats)
     _train_network_and_save_params(network, train_features, train_labels, valid_features, valid_labels,
                                    own_images, own_labels)
@@ -114,7 +118,7 @@ def _load_test_validation_data():
 
 
 def _augment_image_data(image):
-    """FIXME get image data as input, return same structure but an augmented version."""
+     """FIXME get image data as input, return same structure but an augmented version."""
 
 
 def _load_test_data():
@@ -293,9 +297,9 @@ def _preprocess_data(features, labels):
     preprocessed_label_stats = {ind: list(labels).count(ind) for ind in set(labels)}
     if len(normalized_features) > 0:
         features = np.concatenate((features, normalized_features))
-        features = np.array(list(map(_convert_color_image, features)))
+    features = np.array(list(map(_convert_color_image, features)))
 
-    return features, labels, orig_label_stats , preprocessed_label_stats
+    return features, labels, orig_label_stats, preprocessed_label_stats
 
 
 def _preprocess_train_test_data(train_features, train_labels, valid_features, valid_labels):
@@ -371,7 +375,11 @@ def _convert_color_image(img):
     img_yuv[:, :, 0] = cv2.equalizeHist(img_yuv[:, :, 0])
 
     # convert the YUV image back to RGB format
-    return cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR)
+    color_img = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR)
+    gray_image = cv2.cvtColor(color_img, cv2.COLOR_BGR2GRAY)
+    color_img = np.dstack((color_img, np.zeros((32, 32))))
+    color_img[:,:,3] = gray_image[:,:]
+    return color_img
 
 
 def _evaluate(X_data, y_data, batch_size, accuracy_operation, x, y):
@@ -390,7 +398,7 @@ def _evaluate(X_data, y_data, batch_size, accuracy_operation, x, y):
 
 
 def _first_convo(x, mu, sigma):
-    F_W_1 = tf.Variable(tf.truncated_normal(shape=(5, 5, 3, 6), mean=mu, stddev=sigma), name='first_convo_weights')
+    F_W_1 = tf.Variable(tf.truncated_normal(shape=(5, 5, 4, 6), mean=mu, stddev=sigma), name=FIRST_CONVO_WEIGHTS_NAME)
     F_b_1 = tf.Variable(tf.zeros(6), name='first_convo_biases')
     strides_1 = [1, 1, 1, 1]
     padding_1 = 'VALID'
@@ -407,7 +415,7 @@ def _first_pooling(x):
 
 
 def _second_convo(x, mu, sigma):
-    F_W_2 = tf.Variable(tf.truncated_normal(shape=(5, 5, 6, 16), mean=mu, stddev=sigma), name='second_convo_weights')
+    F_W_2 = tf.Variable(tf.truncated_normal(shape=(5, 5, 6, 16), mean=mu, stddev=sigma), name=SECOND_CONVO_WEIGHTS_NAME)
     F_b_2 = tf.Variable(tf.zeros([16]), name='second_convo_biases')
     strides_2 = [1, 1, 1, 1]
     padding_2 = 'VALID'
@@ -444,32 +452,36 @@ def _third_full(x, mu, sigma):
     return tf.matmul(x, F_W_full_3) + F_b_full_3
 
 
-def _LeNet(x):
+def _LeNet(x, network):
     mu = 0.0
     sigma = 0.1
 
     conv1 = _first_convo(x, mu, sigma)
+    network['convo_1'] = conv1
     # conv1 = tf.nn.l2_normalize(conv1, 0)
 
     pool1 = _first_pooling(conv1)
+    network['pool_1'] =pool1
     # pool1 = tf.nn.l2_normalize(pool1, 0)
 
     conv2 = _second_convo(pool1, mu, sigma)
+    network['convo_2'] = conv2
     # conv2 = tf.nn.l2_normalize(conv2, 0)
     pool2 = _second_pooling(conv2)
-
+    network['pool_2'] =pool2
+    pool2 = tf.nn.dropout(pool2, 0.9)
     flat = flatten(pool2)
     # flat = tf.nn.l2_normalize(flat, 0)
 
     full1 = _first_full(flat, mu, sigma)
-    full1 = tf.nn.l2_normalize(full1, 0)
+    network['full_1'] = full1
     full2 = _second_full(full1, mu, sigma)
-    full2 = tf.nn.l2_normalize(full2, 0)
+    network['full_2'] = full2
 
     full3 = _third_full(full2, mu, sigma)
-    full3 = tf.nn.l2_normalize(full3, 0)
+    network['full_3'] = full3
 
-    return full3
+    return full3, network
 
 
 def _define_model_architecture():
@@ -479,16 +491,17 @@ def _define_model_architecture():
 
     :return: Nothing, just sets various network topology related tensors."""
 
-    x = tf.placeholder(tf.float32, (None, 32, 32, 3))
+    x = tf.placeholder(tf.float32, (None, 32, 32, 4))
     y = tf.placeholder(tf.int32, None)
-    network_topology = dict(x=x)
-    network_topology['y'] = y
+    network_topology = dict(x=x, y=y)
 
     one_hot_y = tf.one_hot(y, 43)
 
-    logits = _LeNet(x)
+    logits, network_topology = _LeNet(x, network_topology)
     cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=one_hot_y)
 
+    network_topology['logits'] = logits
+    network_topology['softmaxes'] = tf.nn.softmax(logits)
     network_topology['epochs'] = EPOCHS
     network_topology['batch_size'] = BATCH_SIZE
 
@@ -537,7 +550,7 @@ def _train_network_and_save_params(network, train_features, train_labels, valid_
             validation_accuracy_own_data = _evaluate(own_features, own_labels, batch_size, accuracy_operation, x, y)
             print("Validation Accuracy using own data = {:.6f}".format(validation_accuracy_own_data))
 
-        name = tf.train.Saver().save(sess, './lenet.ckpt')
+        name = tf.train.Saver().save(sess, './lenet-2.ckpt')
         print("Model saved, model name: {}".format(name))
 
 
@@ -551,8 +564,31 @@ def load_and_evaluate_model(features, labels, data_set_type="test"):
         restorer = tf.train.Saver()
         restorer.restore(sess, './lenet.ckpt')
         test_accuracy = _evaluate(features, labels, network['batch_size'], network['accuracy_operation'], network['x'], network['y'])
+        for i in range(10):
+            _print_max_softmaxes(sess, network, features[i], labels[i])
         print("{} set accuracy = {:.3f}".format(data_set_type, test_accuracy))
 
+        # F_W_1 = next(var for var in tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES) if FIRST_CONVO_WEIGHTS_PATTERN.match(var.name))
+
+        _print_featuremap(network, features[0])
+
+
+def _print_max_softmaxes(sess, network, img, label):
+    logits = sess.run(network['logits'], feed_dict={network['x']: np.array([img]), network['y']: np.array([label])})
+    print("logits:")
+    print(logits)
+    softmaxes = sess.run(network['softmaxes'], feed_dict={network['x']: np.array([img]), network['y']: np.array([label])})
+    print("softmaxes")
+    print(softmaxes)
+    max_softmaxes = tf.nn.top_k(softmaxes, k=5)
+    print("max_softmaxes:")
+    print("Real label: {}".format(label))
+    print(sess.run(max_softmaxes))
+
+
+def _print_featuremap(network, img):
+    _outputFeatureMap(network, img, (network['convo_1'], network['pool_1'], network['convo_2'],
+                                     network['pool_2']))
 
 # TODO: the rest is just copy-paste from the initial workbook
 
@@ -564,26 +600,34 @@ def load_and_evaluate_model(features, labels, data_set_type="test"):
 # activation_min/max: can be used to view the activation contrast in more detail, by default matplot sets min and max to the actual min and max values of the output
 # plt_num: used to plot out multiple different weight feature map sets on the same block, just extend the plt number for each new feature map entry
 
-def _outputFeatureMap(image_input, tf_activation, activation_min=-1, activation_max=-1, plt_num=1):
+def _outputFeatureMap(network, image_input, tf_activations, activation_min=-1, activation_max=-1, plt_num=1):
     # Here make sure to preprocess your image_input in a way your network expects
     # with size, normalization, ect if needed
     # image_input =
     # Note: x should be the same name as your network's tensorflow data placeholder variable
     # If you get an error tf_activation is not defined it maybe having trouble accessing the variable from inside a function
-    activation = tf_activation.eval(session=sess,feed_dict={x : image_input})
-    featuremaps = activation.shape[3]
-    plt.figure(plt_num, figsize=(15,15))
-    for featuremap in range(featuremaps):
-        plt.subplot(6,8, featuremap+1) # sets the number of feature maps to show on each row and column
-        plt.title('FeatureMap ' + str(featuremap)) # displays the feature map number
-        if activation_min != -1 & activation_max != -1:
-            plt.imshow(activation[0,:,:, featuremap], interpolation="nearest", vmin =activation_min, vmax=activation_max, cmap="gray")
-        elif activation_max != -1:
-            plt.imshow(activation[0,:,:, featuremap], interpolation="nearest", vmax=activation_max, cmap="gray")
-        elif activation_min !=-1:
-            plt.imshow(activation[0,:,:, featuremap], interpolation="nearest", vmin=activation_min, cmap="gray")
-        else:
-            plt.imshow(activation[0,:,:, featuremap], interpolation="nearest", cmap="gray")
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        # activation = sess.run(tf_activation, feed_dict={network['x']: [image_input]})
+        for tf_activation in tf_activations:
+            activation = tf_activation.eval(session=sess, feed_dict={network['x']: [image_input]})
+            try:
+                featuremaps = activation.shape[3]
+            except IndexError:
+                featuremaps = 1
+            plt.figure(figsize=(15,15))
+            for featuremap in range(featuremaps):
+                plt.subplot(6,8, featuremap+1) # sets the number of feature maps to show on each row and column
+                plt.title('FeatureMap ' + str(featuremap)) # displays the feature map number
+                if activation_min != -1 & activation_max != -1:
+                    plt.imshow(activation[0,:,:, featuremap], interpolation="nearest", vmin =activation_min, vmax=activation_max, cmap="gray")
+                elif activation_max != -1:
+                    plt.imshow(activation[0,:,:, featuremap], interpolation="nearest", vmax=activation_max, cmap="gray")
+                elif activation_min !=-1:
+                    plt.imshow(activation[0,:,:, featuremap], interpolation="nearest", vmin=activation_min, cmap="gray")
+                else:
+                    plt.imshow(activation[0,:,:, featuremap], interpolation="nearest", cmap="gray")
+            plt.show()
 
 
 def load_and_preprocess_web_images(visualize=False):
