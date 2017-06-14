@@ -26,14 +26,14 @@ FIRST_CONVO_WEIGHTS_PATTERN = re.compile(FIRST_CONVO_WEIGHTS_NAME + '.*')
 SECOND_CONVO_WEIGHTS_NAME = 'second_convo_weights'
 SECOND_CONVO_WEIGHTS_PATTERN = re.compile(SECOND_CONVO_WEIGHTS_NAME + '.*')
 
-TRAINING_FILE = '/home/jtirila/Data/german-traffic-signs/train.p'
-VALIDATION_FILE = '/home/jtirila/Data/german-traffic-signs/valid.p'
-TESTING_FILE = '/home/jtirila/Data/german-traffic-signs/test.p'
+TRAINING_FILE = '/Users/jmt/Data/german-traffic-signs/train.p'
+VALIDATION_FILE = '/Users/jmt/Data/german-traffic-signs/valid.p'
+TESTING_FILE = '/Users/jmt/Data/german-traffic-signs/test.p'
 LABEL_FILE = 'signnames.csv'
 
 
 LEARNING_RATE = 0.0014
-EPOCHS = 100
+EPOCHS = 50
 BATCH_SIZE = 128
 
 WEB_FILENAMES_ORIGINAL = ['5-speed-limit-80-km-h-cropped.png', '30-snow-cropped.png', '31-wild-animals-passing-cropped.png', '38-keep-right-cropped.png', '17-no-entry-cropped.png']
@@ -53,7 +53,8 @@ def testing_pipeline():
     # for img in test_features:
     #     normalized_features.append(_convert_color_image(img))
 
-    test_features = np.array(list(map(_convert_color_image, test_features)))
+    test_features = [_convert_color_image(img) for img in test_features]
+    # test_features = np.array(list(map(_convert_color_image, test_features)))
     load_and_evaluate_model(test_features, test_labels)
 
 
@@ -190,8 +191,10 @@ def _print_training_data_basic_summary(train_features, train_labels, valid_featu
 def _load_web_images_first_time():
     # Loads the images in BRG mode.
     images = np.array(list(map(lambda x: cv2.imread(os.path.join('web-images', x)), WEB_FILENAMES)))
-    images = np.array(list(map(lambda x: cv2.cvtColor(x, cv2.COLOR_BGR2RGB), images)))
-    labels = list(map(lambda x: x.split("-")[0], WEB_FILENAMES))
+    images = np.array(
+        [cv2.cvtColor(img, cv2.COLOR_BGR2RGB) for img in images]
+    )
+    labels = [x.split("-")[0] for x in WEB_FILENAMES]
     return images, labels
 
 
@@ -297,7 +300,7 @@ def _preprocess_data(features, labels):
     preprocessed_label_stats = {ind: list(labels).count(ind) for ind in set(labels)}
     if len(normalized_features) > 0:
         features = np.concatenate((features, normalized_features))
-    features = np.array(list(map(_convert_color_image, features)))
+    features = np.array([_convert_color_image(img) for img in features])
 
     return features, labels, orig_label_stats, preprocessed_label_stats
 
@@ -306,8 +309,6 @@ def _preprocess_train_test_data(train_features, train_labels, valid_features, va
     """Todo: Initial steps towards some grayscaling etc. Remember, at this point the images have already been shuffled."""
 
     # TODO: find out ways to preprocess the data in meaningful ways.
-    normalized_train = []
-    normalized_valid = []
 
     # halfway_train = len(X_train) // 2
     # train_1st_half_copy = X_train[:halfway_train]
@@ -353,10 +354,8 @@ def _preprocess_train_test_data(train_features, train_labels, valid_features, va
 
     # Add a slightly scaled version of the other half of the images, with a little bit of added noise.
 
-    for img in train_features:
-        normalized_train.append(_convert_color_image(img))
-    for img in valid_features:
-        normalized_valid.append(_convert_color_image(img))
+    normalized_train = [_convert_color_image(img) for img in train_features]
+    normalized_valid = [_convert_color_image(img) for img in valid_features]
 
     preprocessed_label_stats_train = {ind: list(train_labels).count(ind) for ind in set(train_labels)}
     preprocessed_label_stats_valid = {ind: list(valid_labels).count(ind) for ind in set(valid_labels)}
@@ -376,9 +375,6 @@ def _convert_color_image(img):
 
     # convert the YUV image back to RGB format
     color_img = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR)
-    gray_image = cv2.cvtColor(color_img, cv2.COLOR_BGR2GRAY)
-    color_img = np.dstack((color_img, np.zeros((32, 32))))
-    color_img[:,:,3] = gray_image[:,:]
     return color_img
 
 
@@ -392,94 +388,48 @@ def _evaluate(X_data, y_data, batch_size, accuracy_operation, x, y):
         total_accuracy += (accuracy * len(batch_x))
     return total_accuracy / num_examples
 
-
-# TODO: these layer methods probably don't make sense on their own, just include them all in the network architecture
-# TODO: definition
-
-
-def _first_convo(x, mu, sigma):
-    F_W_1 = tf.Variable(tf.truncated_normal(shape=(5, 5, 4, 6), mean=mu, stddev=sigma), name=FIRST_CONVO_WEIGHTS_NAME)
-    F_b_1 = tf.Variable(tf.zeros(6), name='first_convo_biases')
-    strides_1 = [1, 1, 1, 1]
-    padding_1 = 'VALID'
-    conv1 = tf.nn.conv2d(x, F_W_1, strides=strides_1, padding=padding_1) + F_b_1
-    return conv1
-
-
-def _first_pooling(x):
-    ksize = [1, 2, 2, 1]
-    strides = [1, 2, 2, 1]
-    padding = 'VALID'
-    pool1 = tf.nn.max_pool(x, ksize, strides, padding)
-    return pool1
-
-
-def _second_convo(x, mu, sigma):
-    F_W_2 = tf.Variable(tf.truncated_normal(shape=(5, 5, 6, 16), mean=mu, stddev=sigma), name=SECOND_CONVO_WEIGHTS_NAME)
-    F_b_2 = tf.Variable(tf.zeros([16]), name='second_convo_biases')
-    strides_2 = [1, 1, 1, 1]
-    padding_2 = 'VALID'
-    conv2 = tf.nn.conv2d(x, F_W_2, strides_2, padding_2) + F_b_2
-    return conv2
-
-
-def _second_pooling(x):
-    ksize = [1, 2, 2, 1]
-    strides = [1, 2, 2, 1]
-    padding = 'VALID'
-    pool2 = tf.nn.max_pool(x, ksize, strides, padding)
-    return pool2
-
-
-def _first_full(x, mu, sigma):
-    F_W_full_1 = tf.Variable(tf.truncated_normal(shape=(400, 120), mean=mu, stddev=sigma), name='first_full_weights')
-    F_b_full_2 = tf.Variable(tf.zeros([120]), name='first_full_biases')
-    full1 = tf.matmul(x, F_W_full_1) + F_b_full_2
-    full1 = tf.nn.relu(full1)
-    return full1
-
-
-def _second_full(x, mu, sigma):
-    F_W_full_2 = tf.Variable(tf.truncated_normal(shape=(120, 84), mean=mu, stddev=sigma), name='second_full_weights')
-    F_b_full_2 = tf.Variable(tf.zeros([84]), name='second_full_biases')
-    full2 = tf.matmul(x, F_W_full_2) + F_b_full_2
-    return tf.nn.relu(full2)
-
-
-def _third_full(x, mu, sigma):
-    F_W_full_3 = tf.Variable(tf.truncated_normal(shape=(84, 43), mean=mu, stddev=sigma), name='third_full_weights')
-    F_b_full_3 = tf.Variable(tf.zeros([43]), name='third_full_biases')
-    return tf.matmul(x, F_W_full_3) + F_b_full_3
-
-
 def _LeNet(x, network):
     mu = 0.0
     sigma = 0.1
 
-    conv1 = _first_convo(x, mu, sigma)
-    network['convo_1'] = conv1
-    # conv1 = tf.nn.l2_normalize(conv1, 0)
+    F_W_1 = tf.Variable(tf.truncated_normal(shape=(5, 5, 3, 6), mean=mu, stddev=sigma), name=FIRST_CONVO_WEIGHTS_NAME)
+    F_b_1 = tf.Variable(tf.zeros(6), name='first_convo_biases')
+    strides_1 = [1, 1, 1, 1]
+    padding_1 = 'VALID'
+    conv1 = tf.nn.conv2d(x, F_W_1, strides=strides_1, padding=padding_1) + F_b_1
 
-    pool1 = _first_pooling(conv1)
-    network['pool_1'] =pool1
-    # pool1 = tf.nn.l2_normalize(pool1, 0)
+    conv1 = tf.nn.relu(conv1)
 
-    conv2 = _second_convo(pool1, mu, sigma)
-    network['convo_2'] = conv2
-    # conv2 = tf.nn.l2_normalize(conv2, 0)
-    pool2 = _second_pooling(conv2)
-    network['pool_2'] =pool2
-    pool2 = tf.nn.dropout(pool2, 0.9)
+    ksize = [1, 2, 2, 1]
+    strides = [1, 2, 2, 1]
+    padding = 'VALID'
+    pool1 = tf.nn.max_pool(conv1, ksize, strides, padding)
+
+    F_W_2 = tf.Variable(tf.truncated_normal(shape=(5, 5, 6, 16), mean=mu, stddev=sigma), name=SECOND_CONVO_WEIGHTS_NAME)
+    F_b_2 = tf.Variable(tf.zeros([16]), name='second_convo_biases')
+    strides_2 = [1, 1, 1, 1]
+    padding_2 = 'VALID'
+    conv2 = tf.nn.conv2d(pool1, F_W_2, strides_2, padding_2) + F_b_2
+
+    conv2 = tf.nn.relu(conv2)
+
+    pool2 = tf.nn.max_pool(conv2, ksize, strides, padding)
+
     flat = flatten(pool2)
-    # flat = tf.nn.l2_normalize(flat, 0)
 
-    full1 = _first_full(flat, mu, sigma)
-    network['full_1'] = full1
-    full2 = _second_full(full1, mu, sigma)
-    network['full_2'] = full2
+    F_W_full_1 = tf.Variable(tf.truncated_normal(shape=(400, 120), mean=mu, stddev=sigma), name='first_full_weights')
+    F_b_full_1 = tf.Variable(tf.zeros([120]), name='first_full_biases')
+    full1 = tf.matmul(flat, F_W_full_1) + F_b_full_1
+    full1 = tf.nn.relu(full1)
 
-    full3 = _third_full(full2, mu, sigma)
-    network['full_3'] = full3
+    F_W_full_2 = tf.Variable(tf.truncated_normal(shape=(120, 84), mean=mu, stddev=sigma), name='second_full_weights')
+    F_b_full_2 = tf.Variable(tf.zeros([84]), name='second_full_biases')
+    full2 = tf.matmul(full1, F_W_full_2) + F_b_full_2
+    full2 = tf.nn.relu(full2)
+
+    F_W_full_3 = tf.Variable(tf.truncated_normal(shape=(84, 43), mean=mu, stddev=sigma), name='third_full_weights')
+    F_b_full_3 = tf.Variable(tf.zeros([43]), name='third_full_biases')
+    full3 = tf.matmul(full2, F_W_full_3) + F_b_full_3
 
     return full3, network
 
@@ -491,7 +441,7 @@ def _define_model_architecture():
 
     :return: Nothing, just sets various network topology related tensors."""
 
-    x = tf.placeholder(tf.float32, (None, 32, 32, 4))
+    x = tf.placeholder(tf.float32, (None, 32, 32, 3))
     y = tf.placeholder(tf.int32, None)
     network_topology = dict(x=x, y=y)
 
