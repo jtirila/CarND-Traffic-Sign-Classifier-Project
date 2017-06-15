@@ -108,7 +108,7 @@ See below for the same info for training data in a visual format.
 
 The figure below contains an illustration of 9 randomly selected images from the training set.
 
-[example_images] 
+![example_images] 
 
 
 

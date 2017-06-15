@@ -61,22 +61,6 @@ The code for this step is contained in the FIXME:third code cell of the IPython 
 described in the cell and I won't repeat it here. To summarize, I plotted a bar chart containing the numbers of 
 examples in each class, and then some examples of each class. 
 
-As a first preprocessing step, I augment the data so that each class is approximately equally represented in the
-training data set. This could be done by just copying some images over and over, but I figured it is better to introduce
-"new" examples by performing some slight alterations of the images while copying. 
-
-Hence, I applied some random rotations and scalings to the images. FIXME: Below is an example of a traffic sign 
-image and its altered version. 
-
-With this augmentation technique, I ended up with a data set of FIXME examples. 
-
-#### Luminosity normalization
-
-Looking at the visualizations, it is obvious that the images vary greatly in luminosity and contrast. I hence looked 
-for a method to enhance the contrast and also unify the image luminosity / brighness across examples. The method 
-I ended up using is to perform histrogram normalization on the Y channel of the image, temporarily first converted 
-into the YUV colorspace format for this procedure. The code to do this using OpenCV can be found below. 
-
 ```python
 import cv2
 import numpy as np
