@@ -293,7 +293,7 @@ data.
 And here is the misclassified sign with an example of its predicted category: 
 
 
-[!The 80 km/h sign and its predicted counterpart][prediction_80kmh]
+![The 80 km/h sign and its predicted counterpart][prediction_80kmh]
 
 
 ### Softmaxes
