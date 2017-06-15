@@ -35,10 +35,20 @@ I will now consider the [rubric points](https://review.udacity.com/#!/rubrics/48
 
 #### A Basic Summary of the Data Set 
 
-The code for this step is contained in the second code cell of the IPython notebook.  
+##### Test train split
 
-I used just plain Python to to calculate some summary statistics of the traffic
-signs data set
+The traffic sign image set that I downloaded was already divided into a training, validation and testing set. I did not 
+change this even though it could be beneficial to combine the sets and perform the splits from scratch, using e.g. 
+the `train_test_split` function of `scikit-learn`. 
+
+##### Statistics and visualizations 
+
+The traffic sign data I loaded was already divided into training, validation and test sets and I did not change this. 
+So the 
+
+The code for this step is contained in the second code cell of the IPython notebook. First I print out the 
+following statistics about the data set, using just plain Python to to calculate some summary statistics of the traffic
+signs data set.
 
 * The size of training set is ?
 * The size of test set is ?
@@ -47,50 +57,87 @@ signs data set
 
 #### Some visualizations of the data set 
 
-The code for this step is contained in the third code cell of the IPython notebook. The bulk of the work is described
-in the cell and I won't repeat it here. Looking at the visualization, it is obvious that the 
-images vary greatly in luminosity and contrast. 
+The code for this step is contained in the FIXME:third code cell of the IPython notebook. The bulk of the work is 
+described in the cell and I won't repeat it here. To summarize, I plotted a bar chart containing the numbers of 
+examples in each class, and then some examples of each class. 
 
-Here is an exploratory visualization of the data set. It is a bar chart showing how the data ...
+As a first preprocessing step, I augment the data so that each class is approximately equally represented in the
+training data set. This could be done by just copying some images over and over, but I figured it is better to introduce
+"new" examples by performing some slight alterations of the images while copying. 
+
+Hence, I applied some random rotations and scalings to the images. FIXME: Below is an example of a traffic sign 
+image and its altered version. 
+
+With this augmentation technique, I ended up with a data set of FIXME examples. 
+
+#### Luminosity normalization
+
+Looking at the visualizations, it is obvious that the images vary greatly in luminosity and contrast. I hence looked 
+for a method to enhance the contrast and also unify the image luminosity / brighness across examples. The method 
+I ended up using is to perform histrogram normalization on the Y channel of the image, temporarily first converted 
+into the YUV colorspace format for this procedure. The code to do this using OpenCV can be found below. 
+
+```python
+import cv2
+import numpy as np
+
+img = cv2.imread('input.jpg')
+
+img_yuv = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
+
+# equalize the histogram of the Y channel
+img_yuv[:,:,0] = cv2.equalizeHist(img_yuv[:,:,0])
+
+# convert the YUV image back to RGB format
+img_output = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR)
+
+```
+
+#### Shuffling Before Training and Between Epochs
+
+To eliminate all possible effects related to training data ordering, I make sure to shuffle the training examples and 
+the corresponding labels every time before a new batch of training is about to happen. This is peformed at multiple 
+locations in the code. The shuffling is performed using the `shuffle` function in `sklean.utils`, and it is used as 
+follows. 
+
+```python
+from sklearn.utils import shuffle
+features_train, labels_train = shuffle(features_train, labels_train)
+
+```
+
+
+
+https://www.packtpub.com/mapt/book/application_development/9781785283932/2/ch02lvl1sec26/enhancing-the-contrast-in-an-image
+https://stackoverflow.com/a/38312281
+
+The actual code I use is a bit different due to different order of colorspace conversions. The code can be found in 
+cell FIXME of the notebook. 
+
 
 ![alt text][image1]
 
-###Design and Test a Model Architecture
+### The Model Architecture Design
 
-####1. Describe how, and identify where in your code, you preprocessed the image data. What tecniques were chosen and why did you choose these techniques? Consider including images showing the output of each preprocessing technique. Pre-processing refers to techniques such as converting to grayscale, normalization, etc.
+The model architecture I ended up using is just the same as in the instructions. I played around 
+with some simpler feedforward network architectures also, and tried adding layers to the LeNet architecture, 
+but the improvements were not worth the increased computing demands. 
 
-The code for this step is contained in the fourth code cell of the IPython notebook.
+Here is an image of the LeNet architecture: 
 
-As a first step, I decided to convert the images to grayscale because ...
+![Lenet architecture][lenet_arch_image]
 
-Here is an example of a traffic sign image before and after grayscaling.
+The one alteration I did make to the LeNet model, however, was the addition of dropout as a regularization technique. 
 
-![alt text][image2]
+I tried adding dropout to various layers in the network, but it turned out it worked best just after the second 
+pooling layer. I am not sure why the effect would be different here compared to performing dropout after flattening 
+the output of pooling, but this was my experience anyhow. 
 
-As a last step, I normalized the image data because ...
+The code that defines the LeNet architecture can be found in cell FIXME of the notebook, in the LeNet function. 
+For reasons explained later, I also update a network parameter dict when defining the architecture. 
+That is why in addition to the output layer, also the network dict is returned from the function. 
 
-####2. Describe how, and identify where in your code, you set up training, validation and testing data. How much data was in each set? Explain what techniques were used to split the data into these sets. (OPTIONAL: As described in the "Stand Out Suggestions" part of the rubric, if you generated additional data for training, describe why you decided to generate additional data, how you generated the data, identify where in your code, and provide example images of the additional data)
-
-The code for splitting the data into training and validation sets is contained in the fifth code cell of the IPython notebook.  
-
-To cross validate my model, I randomly split the training data into a training set and validation set. I did this by ...
-
-My final training set had X number of images. My validation set and test set had Y and Z number of images.
-
-The sixth code cell of the IPython notebook contains the code for augmenting the data set. I decided to generate additional data because ... To add more data to the the data set, I used the following techniques because ... 
-
-Here is an example of an original image and an augmented image:
-
-![alt text][image3]
-
-The difference between the original data set and the augmented data set is the following ... 
-
-
-####3. Describe, and identify where in your code, what your final model architecture looks like including model type, layers, layer sizes, connectivity, etc.) Consider including a diagram and/or table describing the final model.
-
-The code for my final model is located in the seventh cell of the ipython notebook. 
-
-My final model consisted of the following layers:
+The LeNet architecture consists of the folowing layers:
 
 | Layer         		|     Description	        					| 
 |:---------------------:|:---------------------------------------------:| 
@@ -104,52 +151,88 @@ My final model consisted of the following layers:
 |						|												|
 |						|												|
  
+ 
+#### The hyperparameters
+
+I concluded that the number of epochs should not be too large, so I ended up using 10. 
+
+For the learning rate, I figured something rather small is appropriate. Testing various values, 
+I settled on `0.0014`. 
+
+A further thing to consider are the distributions of the initial weights. I am using random normal weights. 
+My experience is that the choice of variance value used to draw these initial weigts is actually pretty important. 
+
+After playing around with different sigmas, I ended up using FIXME: sigma. 
+
+### Training and evaluating the model
+
+The training code I used was basically copied over from the instruction videos and the labs preceding this project. 
+The training function can be seen in code cell #FIXME
+
+After each epoch, some metrics are printed out concerning the performance of the model. Here is an example output: 
+
+```
+2017-06-15 10:57:41.799758: EPOCH 1 ...
+Validation Accuracy = 0.887302
+```
+
+The evaluation code is written in the code cell FIXME of the notebook. 
 
 
-####4. Describe how, and identify where in your code, you trained your model. The discussion can include the type of optimizer, the batch size, number of epochs and any hyperparameters such as learning rate.
+### Iterating to come up With a Functional Pipeline and Good Hyperparameters
 
-The code for training the model is located in the eigth cell of the ipython notebook. 
+Of course, the LeNet code or the choices of hyperparameters listed above needed to be revised multiple times, 
+and the ones listed above are just the final choices I made. The process involved trying out different 
+combinations of hyperparameter values and fixing minor bugs in the processing pipeline. 
 
-To train the model, I used an ....
+I decided not to use Amazon Web Services for this project even though I was already familiar with AWS. Even on 
+my own laptop, the training was fast enough. 
 
-####5. Describe the approach taken for finding a solution. Include in the discussion the results on the training, validation and test sets and where in the code these were calculated. Your approach may have been an iterative process, in which case, outline the steps you took to get to the final solution and why you chose those steps. Perhaps your solution involved an already well known implementation or architecture. In this case, discuss why you think the architecture is suitable for the current problem.
 
-The code for calculating the accuracy of the model is located in the ninth cell of the Ipython notebook.
+### Results
 
 My final model results were:
 * training set accuracy of ?
 * validation set accuracy of ? 
 * test set accuracy of ?
 
-If an iterative approach was chosen:
-* What was the first architecture that was tried and why was it chosen?
-* What were some problems with the initial architecture?
-* How was the architecture adjusted and why was it adjusted? Typical adjustments could include choosing a different model architecture, adding or taking away layers (pooling, dropout, convolution, etc), using an activation function or changing the activation function. One common justification for adjusting an architecture would be due to over fitting or under fitting. A high accuracy on the training set but low accuracy on the validation set indicates over fitting; a low accuracy on both sets indicates under fitting.
-* Which parameters were tuned? How were they adjusted and why?
-* What are some of the important design choices and why were they chosen? For example, why might a convolution layer work well with this problem? How might a dropout layer help with creating a successful model?
+### Test a Model on New Images
 
-If a well known architecture was chosen:
-* What architecture was chosen?
-* Why did you believe it would be relevant to the traffic sign application?
-* How does the final model's accuracy on the training, validation and test set provide evidence that the model is working well?
+I subsequently searched for a set of German traffic signs on the internet and tried how my model would perform in
+classifying these images. 
  
+The images are displayed below together with their class descriptions. 
 
-###Test a Model on New Images
 
-####1. Choose five German traffic signs found on the web and provide them in the report. For each image, discuss what quality or qualities might be difficult to classify.
+I first preprocessed these images using the same colorspace conversions, histogram equalizations etc. as I performed on 
+the original training set. Below are the preprocessed versions of the web images. 
 
-Here are five German traffic signs that I found on the web:
+![Preprocessed web images][preprocessed_web_images]
 
-![alt text][image4] ![alt text][image5] ![alt text][image6] 
-![alt text][image7] ![alt text][image8]
 
-The first image might be difficult to classify because ...
+#### The Code to Produce Predictions
 
-####2. Discuss the model's predictions on these new traffic signs and compare the results to predicting on the test set. Identify where in your code predictions were made. At a minimum, discuss what the predictions were, the accuracy on these new predictions, and compare the accuracy to the accuracy on the test set (OPTIONAL: Discuss the results in more detail as described in the "Stand Out Suggestions" part of the rubric).
+The pipeline to make the class prediction for the downloaded images can be found below. 
+```python
+def load_model_and_predict(features):
+    """Load a model into a session again, and use it to produce predictions of image labels"""
+    with tf.Session() as sess:
+        restorer = tf.train.Saver()
+        restorer.restore(sess, './lenet-2.ckpt')
 
-The code for making predictions on my final model is located in the tenth cell of the Ipython notebook.
+        for ind, img in enumerate(features): 
+            plt.imshow(img)
+            plt.show()
+            print(sess.run(tf.argmax(network['softmaxes'], 1), feed_dict={network['x']: [features[ind]]}))
+```
 
-Here are the results of the prediction:
+I figured for a data set this small, it is easiest to again display the images next to their predicted labels. The output 
+of running the function above for the model trained previously was as follows: 
+ 
+![Downloaded images' prediction outputs][web_image_pred_output]
+
+Here are the example results again in tabularized format (Note: the table is hard coded so it is not upated automatically 
+upon subsequent runs):
 
 | Image			        |     Prediction	        					| 
 |:---------------------:|:---------------------------------------------:| 
@@ -159,12 +242,21 @@ Here are the results of the prediction:
 | 100 km/h	      		| Bumpy Road					 				|
 | Slippery Road			| Slippery Road      							|
 
+#### Discussion on Performance on Downloaded Images
+
+FIXME
 
 The model was able to correctly guess 4 of the 5 traffic signs, which gives an accuracy of 80%. This compares favorably to the accuracy on the test set of ...
 
-####3. Describe how certain the model is when predicting on each of the five new images by looking at the softmax probabilities for each prediction and identify where in your code softmax probabilities were outputted. Provide the top 5 softmax probabilities for each image along with the sign type of each probability. (OPTIONAL: as described in the "Stand Out Suggestions" part of the rubric, visualizations can also be provided such as bar charts)
+#### Evaluation of model confidence by using softmax probabilities 
 
-The code for making predictions on my final model is located in the 11th cell of the Ipython notebook.
+
+```
+FIXME: for each prediction and identify where in your code softmax probabilities were outputted. Provide the top 5 
+softmax probabilities for each image along with the sign type of each probability. (OPTIONAL: as described in the 
+"Stand Out Suggestions" part of the rubric, visualizations can also be provided such as bar charts)
+
+```
 
 For the first image, the model is relatively sure that this is a stop sign (probability of 0.6), and the image does contain a stop sign. The top five soft max probabilities were
 
@@ -182,4 +274,5 @@ For the second image ...
 
 
 
+## Conclusion
 
