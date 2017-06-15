@@ -367,7 +367,21 @@ def _preprocess_train_test_data(train_features, train_labels, valid_features, va
            preprocessed_label_stats_train, orig_label_stats_valid, preprocessed_label_stats_valid
 
 
+def normalize_luminosity_with_thre(img):
+    """Normalize contrast as per http://stackoverflow.com/a/38312281 """
+    img_yuv = cv2.cvtColor(img, cv2.COLOR_RGB2YUV)
+
+    # equalize the histogram of the Y channel
+    # ychan = cv2.equalizeHist(img_yuv[:, :, 0])
+    thre_ychan = cv2.adaptiveThreshold(img_yuv[:, :, 0] ,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY,5,2)
+    img_yuv[:, :, 0] = thre_ychan
+    # convert the YUV image back to RGB format
+    color_img = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2RGB)
+    return color_img
+
+
 def _convert_color_image(img):
+    return normalize_luminosity_with_thre(img)
     """Normalize contrast as per http://stackoverflow.com/a/38312281 """
     img_yuv = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
 
@@ -420,6 +434,7 @@ def _LeNet(x, network):
     pool2 = tf.nn.max_pool(conv2, ksize, strides, padding)
 
     flat = flatten(pool2)
+    flat = tf.nn.dropout(flat, 0.8)
 
     F_W_full_1 = tf.Variable(tf.truncated_normal(shape=(400, 120), mean=mu, stddev=sigma), name='first_full_weights')
     F_b_full_1 = tf.Variable(tf.zeros([120]), name='first_full_biases')
