@@ -381,7 +381,6 @@ def normalize_luminosity_with_thre(img):
 
 
 def _convert_color_image(img):
-    return normalize_luminosity_with_thre(img)
     """Normalize contrast as per http://stackoverflow.com/a/38312281 """
     img_yuv = cv2.cvtColor(img, cv2.COLOR_RGB2YUV)
 

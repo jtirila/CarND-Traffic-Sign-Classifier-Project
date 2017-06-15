@@ -24,7 +24,7 @@ The goals / steps of this project are the following:
 [prediction_snow]: ./prediction_snow.png "Prediction snow"
 [example_images]: ./example_images.png "Example images"
 [example_unprocessed]: ./example_unprocessed.png "An unprocessed example image"
-[example_processed]: ./example_processed.png "A preprocessed example image"
+[example_preprocessed]: ./example_processed.png "A preprocessed example image"
 
 
 ## Dataset exploration
@@ -138,11 +138,9 @@ color_img = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2RGB)
 ```
 
 The following two figures contain first an example of an unprocessed image, and subsequently the preprocessed version 
-of the same image. 
-
+of the same image.
 ![An example of a raw input image][example_unprocessed]
-
-![An example of a ][example_preprocessed]
+![An example of a preprocessed image][example_preprocessed]
 
 As another preprocessing step, I augment the data so that each class is approximately equally represented in the
 training data set. This could be done by just copying some images over and over, but I figured it is better to introduce
