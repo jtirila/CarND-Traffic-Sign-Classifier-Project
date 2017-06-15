@@ -293,7 +293,11 @@ def _preprocess_data(features, labels):
 
         if len(imgs_repeated) > 0:
             new_labels = np.tile(label, len(imgs_repeated))
-            normalized_features = np.concatenate((normalized_features, imgs_repeated))
+            try:
+                normalized_features = np.concatenate((normalized_features, imgs_repeated))
+            except ValueError:
+                normalized_features = imgs_repeated
+
             labels = np.concatenate((labels, new_labels))
             assert len(normalized_features) == len(labels)
 
@@ -330,7 +334,7 @@ def _preprocess_train_test_data(train_features, train_labels, valid_features, va
         coeff = max_num_labels / orig_label_stats_train[label] - 1
         coeff_int = int(np.floor(coeff))
         original_length = len(imgs)
-        if coeff_int > 1:
+        if coeff_int > 0:
             imgs_repeated = np.array([img for img in imgs for _ in range(coeff_int)])
         else:
             imgs_repeated = np.array([])
@@ -390,7 +394,7 @@ def _evaluate(X_data, y_data, batch_size, accuracy_operation, x, y):
 
 def _LeNet(x, network):
     mu = 0.0
-    sigma = 0.1
+    sigma = 0.05
 
     F_W_1 = tf.Variable(tf.truncated_normal(shape=(5, 5, 3, 6), mean=mu, stddev=sigma), name=FIRST_CONVO_WEIGHTS_NAME)
     F_b_1 = tf.Variable(tf.zeros(6), name='first_convo_biases')
