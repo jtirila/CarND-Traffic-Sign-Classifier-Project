@@ -383,7 +383,7 @@ def normalize_luminosity_with_thre(img):
 def _convert_color_image(img):
     return normalize_luminosity_with_thre(img)
     """Normalize contrast as per http://stackoverflow.com/a/38312281 """
-    img_yuv = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
+    img_yuv = cv2.cvtColor(img, cv2.COLOR_RGB2YUV)
 
     # equalize the histogram of the Y channel
     channel = img_yuv[:, :, 0]
@@ -392,9 +392,28 @@ def _convert_color_image(img):
     img_yuv[:, :, 0] = cv2.equalizeHist(img_yuv[:, :, 0])
 
     # convert the YUV image back to RGB format
-    color_img = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR)
+    color_img = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2RGB)
     return color_img
 
+
+#### Included just to keep this code somewhere
+# # FIXME: this does not make sense without the normalization functions. They can be found on AWS
+#
+# plt.imshow(normalize_luminosity(features_train[0]))
+#
+# for img_bgr in vis_images:
+#     img = plt.imshow(img_bgr)
+#     plt.show()
+#     plt.imshow(blur(img_bgr))
+#     plt.show()
+#     #img = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+#     plt.imshow(normalize_luminosity(img_bgr))
+#     plt.show()
+#     plt.imshow(normalize_luminosity_with_thre(img_bgr))
+#     # plt.imshow(normalize_luminosity(blur(img)))
+#     plt.show()
+#     plt.imshow(blur(normalize_clahe(img_bgr)))
+#     plt.show()
 
 def _evaluate(X_data, y_data, batch_size, accuracy_operation, x, y):
     num_examples = len(X_data)
