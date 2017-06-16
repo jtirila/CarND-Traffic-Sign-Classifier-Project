@@ -207,12 +207,13 @@ Here is an overview of my final layer configuration:
 | Max pooling           | 2x2 stride,  outputs 5x5x40                               |
 | Flatten               | 1000 neurons (same as output amount of previous layer)    |
 | Fully connected  1    | 400 neurons                                               |
+| RELU                  | Outputs the same buth with relu activation applied        |
 | Fully connected  2    | 240 neurons                                               |
+| RELU                  | Outputs the same buth with relu activation applied        |
 | Fully connected  3    | 80 neurons                                                |
+| RELU                  | Outputs the same buth with relu activation applied        |
 | Fully connected  4    | 43 neurons                                                |
 | Logits / Softmax      | Final processing of the output                            |
-|                       |                                                           |
-|                       |                                                           |
  
 As the loss function I used the averaged cross entrypy function as described in the project instruction. 
 I tried out a couple of different optimizers: `AdamOptimizer`, `RMSPropOptimizer`
@@ -296,6 +297,30 @@ to also be resized to 32x32 pixels to be processable by the LeNet architecture.
 
 [web_images_preprocessed]: ./web_images_preprocessed.png "Preprocessed web images"
 
+### Comments on the individual images
+
+#### The 80 km / h Speed Limit
+
+This sign is probably pretty easy to categorize as a speed limit sign, as my experiments indicate, but the numbers are 
+hard for the classifier to get correctly. In an ideal solution, I think there may be need for either a much deeper 
+network structure, or maybe a separate model for digit recognition once it is detected that digits esist in an image. 
+
+#### Snow / Ice Warning
+
+The general shape of this sign is probably rather easily identified, but again the form of the snowflake is rather 
+involved and hence I think it may be easy to confuse with some other warning signs. 
+
+##### Wild animals crossing
+
+Again, the animal shape may be pretty vague in the training data, and it may be a bit difficult to get right. 
+
+##### Keep right
+
+Not one of the problematic ones, I would think. Pretty promiment shapes, not too intricate structure. 
+
+##### No entry
+
+Also this one I think is pretty straightforward, and it was also pretty reliably recognized in my experiments. 
 
 ### The Prediction Results for New Images
 
