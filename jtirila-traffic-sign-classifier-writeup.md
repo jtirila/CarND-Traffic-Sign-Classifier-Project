@@ -217,7 +217,7 @@ Here is an overview of my final layer configuration:
  
 As the loss function I used the averaged cross entrypy function as described in the project instruction. 
 I tried out a couple of different optimizers: `AdamOptimizer`, `RMSPropOptimizer`
-and `MomentOptimizer`, and `AdamOptimizer´ seemed to yield the best results. 
+and `MomentOptimizer`, and `AdamOptimizer` seemed to yield the best results. 
 
 As for batch_size (128), the weight initialization guassian parameters (mu = 0.0, sigma = 0.05), 
 learning rate (0.0014) and number of epochs (18), I pretty much ended up experimenting around and getting a feel for 
