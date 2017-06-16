@@ -195,6 +195,24 @@ but also because of the good performance and relative simplicity of the architec
 arguably more advanced architectures. I ended up modifying LeNet by adding depth dimensions to the convolution layers
 and adding a dropout layer. 
 
+Here is an overview of my final layer configuration: 
+
+| Layer                 |     Description                                           | 
+|:---------------------:|:---------------------------------------------------------:| 
+| Input                 | 32x32x3 RGB image                                         | 
+| Convolution 3x3       | 1x1 stride, 2x2 kernel, valid padding, outputs 32x32x64   |
+| RELU                  |                                                           |
+| Max pooling           | 2x2 stride,  outputs 16x16x64                             |
+| Convolution 3x3       | 1x1 stride, 2x2 kernel, valid padding, outputs 32x32x64   |
+| Fully connected       |                                                           |
+| Fully connected  1    |                                                           |
+| Fully connected  2    |                                                           |
+| Fully connected  3    |                                                           |
+| Fully connected  4    |                                                           |
+| Softmax               | etc.                                                      |
+|                       |                                                           |
+|                       |                                                           |
+ 
 As the loss function I used the averaged cross entrypy function as described in the project instruction. 
 I tried out a couple of different optimizers: `AdamOptimizer`, `RMSPropOptimizer`
 and `MomentOptimizer`, and `AdamOptimizer´ seemed to yield the best results. 
