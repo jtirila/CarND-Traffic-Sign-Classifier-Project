@@ -200,16 +200,17 @@ Here is an overview of my final layer configuration:
 | Layer                 |     Description                                           | 
 |:---------------------:|:---------------------------------------------------------:| 
 | Input                 | 32x32x3 RGB image                                         | 
-| Convolution 3x3       | 1x1 stride, 2x2 kernel, valid padding, outputs 32x32x64   |
-| RELU                  |                                                           |
-| Max pooling           | 2x2 stride,  outputs 16x16x64                             |
-| Convolution 3x3       | 1x1 stride, 2x2 kernel, valid padding, outputs 32x32x64   |
-| Fully connected       |                                                           |
-| Fully connected  1    |                                                           |
-| Fully connected  2    |                                                           |
-| Fully connected  3    |                                                           |
-| Fully connected  4    |                                                           |
-| Softmax               | etc.                                                      |
+| Convolution 3x3       | 1x1 stride, 5x5 kernel, valid padding, outputs 28x28x24   |
+| RELU                  | Outputs the same buth with relu activation applied        |
+| Max pooling           | 2x2 stride,  outputs 14x14x24                             |
+| Convolution 3x3       | 1x1 stride, 2x2 kernel, valid padding, outputs 10x10x40   |
+| Max pooling           | 2x2 stride,  outputs 5x5x40                               |
+| Flatten               | 1000 neurons (same as output amount of previous layer)    |
+| Fully connected  1    | 400 neurons                                               |
+| Fully connected  2    | 240 neurons                                               |
+| Fully connected  3    | 80 neurons                                                |
+| Fully connected  4    | 43 neurons                                                |
+| Logits / Softmax      | Final processing of the output                            |
 |                       |                                                           |
 |                       |                                                           |
  
